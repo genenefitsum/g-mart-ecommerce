@@ -1,0 +1,276 @@
+import { Router } from 'express'
+import bcrypt from 'bcrypt'
+
+import { getMongoStatus } from '../db/mongo.js'
+import User from '../models/User.js'
+import AuthIdentity from '../models/AuthIdentity.js'
+import RefreshToken from '../models/RefreshToken.js'
+import {
+  generateJti,
+  hashRefreshToken,
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+} from '../services/jwt.js'
+import { requireAuth } from '../middleware/requireAuth.js'
+
+export const authRouter = Router()
+
+function mongoGuard(req, res) {
+  const status = getMongoStatus()
+  if (!status.enabled) {
+    res.status(503).json({ ok: false, error: 'Auth requires MongoDB (set MONGO_URI)' })
+    return false
+  }
+  return true
+}
+
+function setRefreshCookie(res, refreshToken) {
+  const isProd = process.env.NODE_ENV === 'production'
+
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/api/v1/auth',
+  })
+}
+
+function clearRefreshCookie(res) {
+  const isProd = process.env.NODE_ENV === 'production'
+
+  res.clearCookie('refresh_token', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/api/v1/auth',
+  })
+}
+
+async function issueTokens({ user, authIdentity }) {
+  const jti = generateJti()
+
+  const refreshToken = signRefreshToken({
+    userId: user._id,
+    authIdentityId: authIdentity._id,
+    jti,
+  })
+
+  const decoded = verifyRefreshToken(refreshToken)
+  const expiresAt = new Date(decoded.exp * 1000)
+
+  await RefreshToken.create({
+    userId: user._id,
+    authIdentityId: authIdentity._id,
+    jti,
+    tokenHash: hashRefreshToken(refreshToken),
+    expiresAt,
+    revokedAt: null,
+  })
+
+  const accessToken = signAccessToken({ userId: user._id, role: user.role })
+
+  return { accessToken, refreshToken }
+}
+
+// POST /api/v1/auth/register
+authRouter.post('/register', async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const { name, email, password } = req.body ?? {}
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ ok: false, error: 'Missing fields' })
+    }
+
+    if (String(password).length < 8) {
+      return res.status(400).json({ ok: false, error: 'Password too short' })
+    }
+
+    const emailLower = String(email).trim().toLowerCase()
+
+    const existing = await AuthIdentity.findOne({ provider: 'local', emailLower })
+    if (existing) {
+      return res.status(409).json({ ok: false, error: 'Email already in use' })
+    }
+
+    const passwordHash = await bcrypt.hash(String(password), 12)
+
+    const user = await User.create({
+      name: String(name).trim(),
+      email: emailLower,
+      passwordHash,
+      role: 'buyer',
+    })
+
+    const authIdentity = await AuthIdentity.create({
+      userId: user._id,
+      provider: 'local',
+      providerUserId: null,
+      emailLower,
+      passwordHash: null,
+      emailVerified: false,
+      profile: { displayName: user.name, avatarUrl: '' },
+      lastLoginAt: new Date(),
+    })
+
+    const { accessToken, refreshToken } = await issueTokens({ user, authIdentity })
+    setRefreshCookie(res, refreshToken)
+
+    return res.status(201).json({
+      ok: true,
+      accessToken,
+      user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
+    })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// POST /api/v1/auth/login
+authRouter.post('/login', async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const { email, password } = req.body ?? {}
+
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, error: 'Missing fields' })
+    }
+
+    const emailLower = String(email).trim().toLowerCase()
+
+    const authIdentity = await AuthIdentity.findOne({ provider: 'local', emailLower })
+    if (!authIdentity) {
+      return res.status(401).json({ ok: false, error: 'Invalid credentials' })
+    }
+
+    const user = await User.findById(authIdentity.userId).select('+passwordHash')
+    if (!user) {
+      return res.status(401).json({ ok: false, error: 'Invalid credentials' })
+    }
+
+    const ok = await bcrypt.compare(String(password), user.passwordHash)
+    if (!ok) {
+      return res.status(401).json({ ok: false, error: 'Invalid credentials' })
+    }
+
+    await AuthIdentity.updateOne({ _id: authIdentity._id }, { $set: { lastLoginAt: new Date() } })
+
+    const { accessToken, refreshToken } = await issueTokens({ user, authIdentity })
+    setRefreshCookie(res, refreshToken)
+
+    return res.json({
+      ok: true,
+      accessToken,
+      user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
+    })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// POST /api/v1/auth/refresh
+authRouter.post('/refresh', async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const token = req.cookies?.refresh_token
+    if (!token) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    let decoded
+    try {
+      decoded = verifyRefreshToken(token)
+    } catch {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    const authIdentityId = decoded.aid
+    const jti = decoded.jti
+
+    const stored = await RefreshToken.findOne({ authIdentityId, jti }).select('+tokenHash')
+    if (!stored) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    if (stored.revokedAt) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    if (stored.expiresAt.getTime() <= Date.now()) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    if (stored.tokenHash !== hashRefreshToken(token)) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    // Rotate refresh token
+    await RefreshToken.updateOne({ _id: stored._id }, { $set: { revokedAt: new Date() } })
+
+    const user = await User.findById(stored.userId)
+    if (!user) {
+      clearRefreshCookie(res)
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    const authIdentity = await AuthIdentity.findById(stored.authIdentityId)
+    if (!authIdentity) {
+      clearRefreshCookie(res)
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    const { accessToken, refreshToken } = await issueTokens({ user, authIdentity })
+    setRefreshCookie(res, refreshToken)
+
+    return res.json({ ok: true, accessToken })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// POST /api/v1/auth/logout
+authRouter.post('/logout', async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const token = req.cookies?.refresh_token
+
+    if (token) {
+      try {
+        const decoded = verifyRefreshToken(token)
+        await RefreshToken.updateOne(
+          { authIdentityId: decoded.aid, jti: decoded.jti, revokedAt: null },
+          { $set: { revokedAt: new Date() } },
+        )
+      } catch {
+        // ignore
+      }
+    }
+
+    clearRefreshCookie(res)
+    return res.json({ ok: true })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// GET /api/v1/auth/me
+authRouter.get('/me', requireAuth, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.auth.userId)
+    if (!user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    return res.json({
+      ok: true,
+      user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
+    })
+  } catch (err) {
+    return next(err)
+  }
+})

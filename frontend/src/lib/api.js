@@ -1,0 +1,43 @@
+import axios from 'axios'
+
+const baseURL =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.PROD ? '/api/v1' : 'http://localhost:4000/api/v1')
+
+export const api = axios.create({
+  baseURL,
+  withCredentials: true,
+})
+
+export function setAccessToken(token) {
+  if (token) {
+    api.defaults.headers.common.Authorization = `Bearer ${token}`
+  } else {
+    delete api.defaults.headers.common.Authorization
+  }
+}
+
+export async function apiLogin({ email, password }) {
+  const res = await api.post('/auth/login', { email, password })
+  return res.data
+}
+
+export async function apiRegister({ name, email, password }) {
+  const res = await api.post('/auth/register', { name, email, password })
+  return res.data
+}
+
+export async function apiRefresh() {
+  const res = await api.post('/auth/refresh')
+  return res.data
+}
+
+export async function apiMe() {
+  const res = await api.get('/auth/me')
+  return res.data
+}
+
+export async function apiLogout() {
+  const res = await api.post('/auth/logout')
+  return res.data
+}

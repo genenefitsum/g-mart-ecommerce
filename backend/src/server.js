@@ -15,7 +15,37 @@ export function createServer() {
 
     app.use(
         cors({
-            origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+            origin: (origin, callback) => {
+                // Allow same-origin requests (no Origin header) and tools like curl/postman
+                if (!origin) return callback(null, true)
+
+                const env = process.env.CORS_ORIGIN
+                const allowAllLocalhost = process.env.NODE_ENV !== 'production'
+
+                const allowedOrigins = (env ? env.split(',') : [])
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+
+                const isAllowedByEnv = allowedOrigins.length
+                    ? allowedOrigins.includes(origin)
+                    : false
+
+                const isAllowedLocalhost =
+                    allowAllLocalhost &&
+                    /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
+
+                const isAllowedPrivateLan =
+                    allowAllLocalhost &&
+                    /^https?:\/\/(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}):\d+$/.test(
+                        origin,
+                    )
+
+                if (isAllowedByEnv || isAllowedLocalhost || isAllowedPrivateLan) {
+                    return callback(null, true)
+                }
+
+                return callback(new Error('Not allowed by CORS'))
+            },
             credentials: true,
         }),
     )
@@ -53,7 +83,12 @@ export function createServer() {
     app.use((err, _req, res, _next) => {
         // eslint-disable-next-line no-console
         console.error(err)
-        res.status(500).json({ ok: false, error: 'Internal server error' })
+
+        const isProd = process.env.NODE_ENV === 'production'
+        const message =
+            isProd ? 'Internal server error' : err?.message ?? String(err)
+
+        res.status(500).json({ ok: false, error: message })
     })
 
     return app
