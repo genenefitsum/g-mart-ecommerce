@@ -29,7 +29,7 @@ export default function AuthScreen() {
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-[520px] flex-col items-center justify-center px-6 py-10">
         <div className="mb-6 text-center">
           <div className="inline-flex items-center justify-center gap-2 text-2xl font-extrabold tracking-tight text-foreground">
-            <ShoppingBag className="h-5 w-5" />
+            <ShoppingBag className="h-5 w-5 text-blue-600" />
             G-mart
           </div>
           <div className="mt-2 text-sm text-muted-foreground">Welcome back! Please sign in to continue.</div>
@@ -108,7 +108,11 @@ export default function AuthScreen() {
 
             {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 text-white hover:bg-blue-700"
+              disabled={isLoading}
+            >
               {isLoading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Sign Up'}
             </Button>
 
