@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser'
 import 'dotenv/config'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import fs from 'fs'
 import { apiV1 } from './routes/apiV1.js'
 import { getMongoStatus } from './db/mongo.js'
 
@@ -12,6 +13,10 @@ const __dirname = path.dirname(__filename)
 
 export function createServer() {
     const app = express()
+
+    const uploadsRoot = path.resolve(process.cwd(), 'uploads')
+    fs.mkdirSync(uploadsRoot, { recursive: true })
+    app.use('/uploads', express.static(uploadsRoot))
 
     app.use(
         cors({

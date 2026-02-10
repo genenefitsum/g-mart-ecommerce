@@ -41,3 +41,16 @@ export async function apiLogout() {
   const res = await api.post('/auth/logout')
   return res.data
 }
+
+export async function apiListProducts({ category, q } = {}) {
+  const params = {}
+  if (category) params.category = category
+  if (q) params.q = q
+  const res = await api.get('/products', { params })
+  return res.data
+}
+
+export async function apiCreateProduct(formData) {
+  const res = await api.post('/products', formData)
+  return res.data
+}
