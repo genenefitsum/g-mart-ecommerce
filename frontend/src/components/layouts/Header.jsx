@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Search, User, Heart, ShoppingBag, Menu, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 const CATEGORIES_FOR_SEARCH = [
   { id: "categories", name: "Categories", description: "Browse all categories" },
@@ -26,13 +27,20 @@ const navLinks = [
   { name: "Contact", id: "contact" },
 ];
 
-const Header = ({ searchQuery = "", onSearch }) => {
+const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
   const { setIsCartOpen, totalItems } = useCart();
+  const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopSearchOpen, setIsDesktopSearchOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(searchQuery);
   const searchInputRef = useRef(null);
+
+  const openAuth = () => {
+    setIsMobileMenuOpen(false);
+    setIsMobileSearchOpen(false);
+    if (typeof onAuthOpen === "function") onAuthOpen();
+  };
 
   const openCart = () => {
     setIsMobileMenuOpen(false);
@@ -180,18 +188,32 @@ const Header = ({ searchQuery = "", onSearch }) => {
                 >
                   <div className="px-4 pt-12 pb-4">
                     <div className="grid grid-cols-2 gap-2">
-                      <button
-                        className={
-                          "py-3.5 px-3 rounded-2xl ring-1 ring-black/5 bg-white/60 " +
-                          "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
-                          "flex items-center justify-center gap-2 transition"
-                        }
-                        aria-label="Account"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <User size={18} className="text-gray-700" />
-                        Account
-                      </button>
+                      {user ? (
+                        <button
+                          className={
+                            "py-3.5 px-3 rounded-2xl ring-1 ring-black/5 bg-white/60 " +
+                            "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
+                            "flex items-center justify-center gap-2 transition"
+                          }
+                          aria-label="Account"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <User size={18} className="text-gray-700" />
+                          Account
+                        </button>
+                      ) : (
+                        <button
+                          className={
+                            "py-3.5 px-3 rounded-2xl ring-1 ring-black/5 bg-white/60 " +
+                            "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
+                            "flex items-center justify-center gap-2 transition"
+                          }
+                          aria-label="Sign in"
+                          onClick={openAuth}
+                        >
+                          Sign in
+                        </button>
+                      )}
 
                       <button
                         className={
@@ -226,6 +248,17 @@ const Header = ({ searchQuery = "", onSearch }) => {
               >
                 <Search size={22} />
               </button>
+
+              {user ? (
+                <button
+                  type="button"
+                  className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                  aria-label="Account"
+                  title="Account"
+                >
+                  <User size={22} />
+                </button>
+              ) : null}
 
               <button
                 type="button"
@@ -271,10 +304,7 @@ const Header = ({ searchQuery = "", onSearch }) => {
             <div className="flex items-center gap-4">
               <div className="relative">
                 {isDesktopSearchOpen ? (
-                  <form
-                    onSubmit={submitSearch}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2"
-                  >
+                  <form onSubmit={submitSearch} className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                         <Search size={18} />
@@ -367,7 +397,7 @@ const Header = ({ searchQuery = "", onSearch }) => {
                   </form>
                 ) : (
                   <button
-                    className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                    className="p-2 text-gray-800 hover:bg-blue-700 hover:text-white hover:font-light rounded transition"
                     aria-label="Search"
                     title="Search"
                     onClick={openDesktopSearch}
@@ -377,13 +407,25 @@ const Header = ({ searchQuery = "", onSearch }) => {
                 )}
               </div>
 
-              <button
-                className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
-                aria-label="Account"
-                title="Account"
-              >
-                <User size={20} />
-              </button>
+              {user ? (
+                <button
+                  className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                  aria-label="Account"
+                  title="Account"
+                >
+                  <User size={20} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="h-10 px-4 rounded-xl border border-gray-200 text-gray-900 font-semibold hover:bg-gray-100 transition"
+                  onClick={openAuth}
+                  aria-label="Sign in / Sign up"
+                  title="Sign in / Sign up"
+                >
+                  Login
+                </button>
+              )}
 
               <button className="p-2 text-gray-800 hover:bg-gray-100 rounded transition" aria-label="Wishlist">
                 <Heart size={20} />

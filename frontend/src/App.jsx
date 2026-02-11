@@ -8,7 +8,9 @@ import CartSideBar from './components/store/CartSideBar.jsx'
 import SellProduct from './components/store/SellProduct.jsx'
 import About from './components/store/About.jsx'
 import Footer from './components/layouts/Footer.jsx'
-import AuthScreen from './pages/AuthScreen.jsx'
+import AuthScreen from './components/store/AuthScreen.jsx'
+
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 import { useAuth } from '@/context/AuthContext'
 import './index.css'
@@ -27,14 +29,14 @@ function App() {
     )
   }
 
-  if (showAuth && !user) {
-    return <AuthScreen />
-  }
-
   return (
     
     <>
-      <Header searchQuery={searchQuery} onSearch={setSearchQuery} />
+      <Header
+        searchQuery={searchQuery}
+        onSearch={setSearchQuery}
+        onAuthOpen={() => setShowAuth(true)}
+      />
       <HeroSection />
       <CategoriesSection searchQuery={searchQuery} />
       <Products searchQuery={searchQuery} refreshKey={productsRefreshKey} />
@@ -43,6 +45,21 @@ function App() {
         onCreated={() => setProductsRefreshKey((k) => k + 1)}
         onRequireAuth={() => setShowAuth(true)}
       />
+
+      <Dialog
+        open={Boolean(showAuth && !user)}
+        onOpenChange={(open) => {
+          setShowAuth(open)
+        }}
+      >
+        <DialogContent
+          className="w-[min(92vw,520px)] max-w-none rounded-3xl border border-gray-200 bg-white p-6 sm:p-7"
+          overlayClassName="bg-black/30 backdrop-blur-sm"
+        >
+          <AuthScreen onSuccess={() => setShowAuth(false)} />
+        </DialogContent>
+      </Dialog>
+
       <About />
       <Footer />
 
