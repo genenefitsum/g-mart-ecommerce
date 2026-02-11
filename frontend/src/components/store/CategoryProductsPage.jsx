@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-import { ChevronDown, ChevronUp, ShoppingCart, Star } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, ChevronDown, ChevronUp, ShoppingCart, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
@@ -53,6 +53,7 @@ const formatPrice = (value) => {
 
 export default function CategoryProductsPage({ searchQuery = "" }) {
   const { categoryId } = useParams();
+  const navigate = useNavigate();
   const { addToCart } = useCart();
 
   const categoryName = CATEGORY_ID_TO_NAME[categoryId] ?? "";
@@ -107,7 +108,23 @@ export default function CategoryProductsPage({ searchQuery = "" }) {
   return (
     <section className="scroll-mt-32 py-16 lg:py-20 bg-white">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-10 lg:mb-12">
+        <div className="mb-8 lg:mb-10">
+          <div className="mb-5 flex items-center justify-start">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl font-montserrat"
+              onClick={() => {
+                if (window.history.length > 1) navigate(-1);
+                else navigate("/");
+              }}
+            >
+              <ArrowLeft />
+              Back
+            </Button>
+          </div>
+
+          <div className="text-center">
           <h1 className="text-3xl lg:text-4xl font-bold mb-4 text-gray-900 font-montserrat">
             {categoryName || "Products"}
           </h1>
@@ -121,6 +138,7 @@ export default function CategoryProductsPage({ searchQuery = "" }) {
               Showing {filteredProducts.length} result{filteredProducts.length === 1 ? "" : "s"} for “{searchQuery}”
             </p>
           ) : null}
+          </div>
         </div>
 
         <div className="mx-auto w-full max-w-6xl">
