@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const categories = [
     {
@@ -58,9 +59,9 @@ const CategoriesSection = ({ searchQuery = "" }) => {
             ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                 {filteredCategories.map((category, index) => (
-                <a
+                <Link
                     key={category.id}
-                    href={`#${category.id}`}
+                    to={`/category/${category.id}`}
                     className="group relative aspect-[3/4] rounded-lg overflow-hidden shadow-md"
                     style={{ animationDelay: `${index * 0.1}s` }}
                 >
@@ -84,7 +85,7 @@ const CategoriesSection = ({ searchQuery = "" }) => {
                         <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
                     </div>
                     </div>
-                </a>
+                </Link>
                 ))}
                 </div>
             )}

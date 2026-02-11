@@ -1,5 +1,6 @@
 // import './App.css';
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import Header from './components/layouts/Header.jsx'
 import HeroSection from './components/store/Hero.jsx'
 import CategoriesSection from './components/store/Categories.jsx'
@@ -9,6 +10,7 @@ import SellProduct from './components/store/SellProduct.jsx'
 import About from './components/store/About.jsx'
 import Footer from './components/layouts/Footer.jsx'
 import AuthScreen from './components/store/AuthScreen.jsx'
+import CategoryProductsPage from './components/store/CategoryProductsPage.jsx'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 
@@ -20,6 +22,36 @@ function App() {
   const [showAuth, setShowAuth] = useState(false)
   const [productsRefreshKey, setProductsRefreshKey] = useState(0)
   const { user, isLoading } = useAuth()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.hash) {
+      // Ensure we don't start the section-scroll from a stale scroll position
+      // (e.g. coming from a shorter/longer page can leave you at the bottom).
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+
+      const id = location.hash.replace('#', '')
+      let attempts = 0
+      const tryScroll = () => {
+        const el = document.getElementById(id)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          return
+        }
+
+        attempts += 1
+        if (attempts < 20) {
+          window.requestAnimationFrame(tryScroll)
+        }
+      }
+
+      tryScroll()
+      return
+    }
+
+    // Default route changes: no animated scrolling.
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname, location.hash])
 
   if (isLoading) {
     return (
@@ -37,9 +69,24 @@ function App() {
         onSearch={setSearchQuery}
         onAuthOpen={() => setShowAuth(true)}
       />
-      <HeroSection />
-      <CategoriesSection searchQuery={searchQuery} />
-      <Products searchQuery={searchQuery} refreshKey={productsRefreshKey} />
+
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <>
+              <HeroSection />
+              <CategoriesSection searchQuery={searchQuery} />
+              <Products searchQuery={searchQuery} refreshKey={productsRefreshKey} />
+            </>
+          }
+        />
+        <Route
+          path="/category/:categoryId"
+          element={<CategoryProductsPage searchQuery={searchQuery} />}
+        />
+      </Routes>
+
       <CartSideBar />
       <SellProduct
         onCreated={() => setProductsRefreshKey((k) => k + 1)}

@@ -3,6 +3,7 @@ import { ChevronDown, Search, User, Heart, ShoppingBag, Menu, X } from "lucide-r
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const CATEGORIES_FOR_SEARCH = [
   { id: "categories", name: "Categories", description: "Browse all categories" },
@@ -30,6 +31,8 @@ const navLinks = [
 const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
   const { setIsCartOpen, totalItems } = useCart();
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopSearchOpen, setIsDesktopSearchOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -50,10 +53,14 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
 
   // Smooth scroll function
   const handleScroll = (id) => {
-    const section = document.getElementById(id);
-    if (section) {
-      section.scrollIntoView({ behavior: "smooth" });
+    if (location.pathname !== "/") {
+      navigate(`/#${id}`);
+      setIsMobileMenuOpen(false);
+      return;
     }
+
+    const section = document.getElementById(id);
+    if (section) section.scrollIntoView({ behavior: "smooth" });
     setIsMobileMenuOpen(false);
   };
 
@@ -283,8 +290,8 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
 
         {/* Desktop/tablet header */}
         <div className="hidden md:block">
-          <div className="container mx-auto px-4 flex items-center justify-between h-16 lg:h-20">
-            <a href="/" className="text-2xl lg:text-3xl font-extrabold tracking-tight text-gray-800">
+          <div className="container mx-auto px-4 flex items-center justify-between h-16 lg:h-16">
+            <a href="/" className="text-2xl lg:text-2xl font-extrabold tracking-tight text-gray-800">
               G-mart
             </a>
 
@@ -418,12 +425,12 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
               ) : (
                 <button
                   type="button"
-                  className="h-10 px-4 rounded-xl border border-gray-200 text-gray-900 font-semibold hover:bg-gray-100 transition"
+                  className="inline-flex items-center justify-center px-2 py-1 rounded border font-light border-gray-200 text-gray-900 font-montserrat text-sm hover:bg-gray-100 transition"
                   onClick={openAuth}
                   aria-label="Sign in / Sign up"
                   title="Sign in / Sign up"
                 >
-                  Login
+                  Sign in
                 </button>
               )}
 
