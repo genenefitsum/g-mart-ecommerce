@@ -90,9 +90,17 @@ authRouter.post('/register', async (req, res, next) => {
 
     const emailLower = String(email).trim().toLowerCase()
 
-    const existing = await AuthIdentity.findOne({ provider: 'local', emailLower })
-    if (existing) {
-      return res.status(409).json({ ok: false, error: 'Email already in use' })
+    const existingIdentity = await AuthIdentity.findOne({ provider: 'local', emailLower })
+    if (existingIdentity) {
+      const existingUser = await User.findById(existingIdentity.userId).select('_id')
+
+      // If the user record was deleted but the identity remains, clean up the stale identity.
+      // This prevents "Email already in use" for an email that is no longer registered.
+      if (!existingUser) {
+        await AuthIdentity.deleteOne({ _id: existingIdentity._id })
+      } else {
+        return res.status(409).json({ ok: false, error: 'Email already in use' })
+      }
     }
 
     const passwordHash = await bcrypt.hash(String(password), 12)

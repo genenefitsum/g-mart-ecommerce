@@ -126,3 +126,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+@layer utilities {
+  @keyframes heroCinematic {
+    0% {
+      transform: scale(1.08) translateY(1%);
+    }
+
+    100% {
+      transform: scale(1.28) translateY(-2%);
+    }
+  }
+
+  .animate-heroCinematic {
+    animation: heroCinematic 14s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
