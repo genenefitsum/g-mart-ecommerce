@@ -154,8 +154,8 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
   return (
     <header className="sticky top-0 z-50">
       {/* Promo Bar */}
-      <div className="bg-black text-white text-center py-2.5 text-sm font-medium">
-        All you need in one place, welcome to G-mart.
+      <div className="bg-black text-white text-center py-2.5 text-sm font-montserrat font-medium">
+        All you need in one place, welcome to <span className="font-bold">G-mart</span> .
       </div>
 
       {/* Navbar */}

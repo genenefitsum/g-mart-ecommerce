@@ -1,6 +1,24 @@
 import { FaInstagram, FaWhatsapp, FaXTwitter } from "react-icons/fa6";
 
 const Footer = () => {
+    const handleFooterNavClick = (e) => {
+        const href = e?.currentTarget?.getAttribute?.('href')
+        if (!href || href === '#' || !href.startsWith('#')) return
+
+        const target = document.querySelector(href)
+        if (!target) return
+
+        e.preventDefault()
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+        // Keep the URL hash in sync without triggering an instant jump.
+        try {
+            window.history.pushState(null, '', href)
+        } catch {
+            // no-op
+        }
+    }
+
     return (
         <>
             <section id="contact" className="bg-black text-white">
@@ -115,8 +133,8 @@ const Footer = () => {
                                     <div>
                                         <p className="text-sm font-semibold font-montserrat">Shop</p>
                                         <ul className="mt-3 space-y-2 text-sm text-white/70 font-montserrat">
-                                            <li><a className="hover:text-white" href="#products">Products</a></li>
-                                            <li><a className="hover:text-white" href="#categories">Categories</a></li>
+                                            <li><a className="hover:text-white" href="#products" onClick={handleFooterNavClick}>Products</a></li>
+                                            <li><a className="hover:text-white" href="#categories" onClick={handleFooterNavClick}>Categories</a></li>
                                             <li><a className="hover:text-white" href="#">New arrivals</a></li>
                                         </ul>
                                     </div>
