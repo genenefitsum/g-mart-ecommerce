@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, ShoppingCart, SlidersHorizontal, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, ShoppingCart, SlidersHorizontal, Star, Heart } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 import { apiListProducts } from "@/lib/api";
 
 const normalizeProduct = (product) => {
@@ -51,8 +52,16 @@ const formatPrice = (value) => {
     }
 };
 
-const Products = ({ searchQuery = "", refreshKey = 0 }) => {
+const Products = ({ searchQuery = "", refreshKey = 0, onRequireAuth }) => {
     const { addToCart } = useCart();
+    const { toggleWishlist, hasInWishlist } = useWishlist();
+    
+    const handleWishlist = async (product) => {
+        const result = await toggleWishlist(product);
+        if (!result?.ok && typeof onRequireAuth === "function") {
+            onRequireAuth();
+        }
+    };
 
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -231,6 +240,8 @@ const Products = ({ searchQuery = "", refreshKey = 0 }) => {
                         isLoading={isLoading}
                         error={loadError}
                         onAddToCart={(product) => addToCart(product)}
+                        onToggleWishlist={handleWishlist}
+                        hasInWishlist={hasInWishlist}
                     />
                 </div>
             </div>
@@ -238,7 +249,7 @@ const Products = ({ searchQuery = "", refreshKey = 0 }) => {
     );
 };
 
-const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart }) => {
+const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, onToggleWishlist, hasInWishlist }) => {
     const [showAll, setShowAll] = useState(false);
     const visibleProducts = showAll ? products : products.slice(0, 8);
 
@@ -299,6 +310,36 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart }) 
                                     {product.badge.text}
                                 </span>
                             )}
+
+                            {/* Wishlist heart (mobile always visible, desktop on hover) */}
+                            <button
+                                type="button"
+                                aria-label="Toggle wishlist"
+                                onClick={() =>
+                                    onToggleWishlist({
+                                        id: product.id,
+                                        name: product.name,
+                                        price: product.price,
+                                        image: product.image,
+                                        category: product.category,
+                                    })
+                                }
+                                className={
+                                    "absolute right-3 top-3 inline-flex items-center justify-center rounded-full bg-white/90 ring-1 ring-black/5 w-9 h-9 transition-colors " +
+                                    "text-gray-800 hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 " +
+                                    "opacity-100 translate-y-0 " +
+                                    "md:opacity-0 md:translate-y-1 md:group-hover:opacity-100 md:group-hover:translate-y-0"
+                                }
+                            >
+                                <Heart
+                                    size={18}
+                                    className={
+                                        hasInWishlist?.(product.id)
+                                            ? "fill-current"
+                                            : ""
+                                    }
+                                />
+                            </button>
 
                             {/* Add to cart overlay (mobile always visible, desktop on hover) */}
                             <div

@@ -6,6 +6,7 @@ import HeroSection from './components/store/Hero.jsx'
 import CategoriesSection from './components/store/Categories.jsx'
 import Products from './components/store/Products.jsx'
 import CartSideBar from './components/store/CartSideBar.jsx'
+import WishlistSideBar from './components/store/WishlistSideBar.jsx'
 import SellProduct from './components/store/SellProduct.jsx'
 import About from './components/store/About.jsx'
 import Footer from './components/layouts/Footer.jsx'
@@ -15,6 +16,7 @@ import CategoryProductsPage from './components/store/CategoryProductsPage.jsx'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 import { useAuth } from '@/context/AuthContext'
+import { WishlistProvider } from '@/context/WishlistContext'
 import './index.css'
 
 function App() {
@@ -64,34 +66,42 @@ function App() {
   return (
     
     <>
-      <Header
-        searchQuery={searchQuery}
-        onSearch={setSearchQuery}
-        onAuthOpen={() => setShowAuth(true)}
-      />
-
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <>
-              <HeroSection />
-              <CategoriesSection searchQuery={searchQuery} />
-              <Products searchQuery={searchQuery} refreshKey={productsRefreshKey} />
-            </>
-          }
+      <WishlistProvider onRequireAuth={() => setShowAuth(true)}>
+        <Header
+          searchQuery={searchQuery}
+          onSearch={setSearchQuery}
+          onAuthOpen={() => setShowAuth(true)}
         />
-        <Route
-          path="/category/:categoryId"
-          element={<CategoryProductsPage searchQuery={searchQuery} />}
-        />
-      </Routes>
 
-      <CartSideBar />
-      <SellProduct
-        onCreated={() => setProductsRefreshKey((k) => k + 1)}
-        onRequireAuth={() => setShowAuth(true)}
-      />
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <>
+                <HeroSection />
+                <CategoriesSection searchQuery={searchQuery} />
+                <Products
+                  searchQuery={searchQuery}
+                  refreshKey={productsRefreshKey}
+                  onRequireAuth={() => setShowAuth(true)}
+                />
+              </>
+            }
+          />
+          <Route
+            path="/category/:categoryId"
+            element={<CategoryProductsPage searchQuery={searchQuery} />}
+          />
+        </Routes>
+
+        <WishlistSideBar />
+        <CartSideBar />
+
+        <SellProduct
+          onCreated={() => setProductsRefreshKey((k) => k + 1)}
+          onRequireAuth={() => setShowAuth(true)}
+        />
+      </WishlistProvider>
 
       <Dialog
         open={Boolean(showAuth && !user)}

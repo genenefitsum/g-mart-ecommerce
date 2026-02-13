@@ -7,6 +7,7 @@ const baseURL =
 export const api = axios.create({
   baseURL,
   withCredentials: true,
+  timeout: 10000,
 })
 
 export function setAccessToken(token) {
@@ -52,5 +53,20 @@ export async function apiListProducts({ category, q } = {}) {
 
 export async function apiCreateProduct(formData) {
   const res = await api.post('/products', formData)
+  return res.data
+}
+
+export async function apiGetWishlist() {
+  const res = await api.get('/wishlist')
+  return res.data
+}
+
+export async function apiAddToWishlist(productId) {
+  const res = await api.post(`/wishlist/${productId}`)
+  return res.data
+}
+
+export async function apiRemoveFromWishlist(productId) {
+  const res = await api.delete(`/wishlist/${productId}`)
   return res.data
 }

@@ -3,6 +3,7 @@ import { ChevronDown, Search, User, Heart, ShoppingBag, Menu, X } from "lucide-r
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useWishlist } from "@/context/WishlistContext";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const CATEGORIES_FOR_SEARCH = [
@@ -30,6 +31,7 @@ const navLinks = [
 
 const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
   const { setIsCartOpen, totalItems } = useCart();
+  const { setIsWishlistOpen, totalItems: totalWishlistItems } = useWishlist();
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -49,6 +51,12 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
     setIsMobileMenuOpen(false);
     setIsMobileSearchOpen(false);
     setIsCartOpen(true);
+  };
+
+  const openWishlist = () => {
+    setIsMobileMenuOpen(false);
+    setIsMobileSearchOpen(false);
+    setIsWishlistOpen(true);
   };
 
   // Smooth scroll function
@@ -229,7 +237,7 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                           "flex items-center justify-center gap-2 transition"
                         }
                         aria-label="Wishlist"
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        onClick={openWishlist}
                       >
                         <Heart size={18} className="text-gray-700" />
                         Wishlist
@@ -434,8 +442,19 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                 </button>
               )}
 
-              <button className="p-2 text-gray-800 hover:bg-gray-100 rounded transition" aria-label="Wishlist">
-                <Heart size={20} />
+              <button
+                className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                aria-label="Wishlist"
+                onClick={openWishlist}
+              >
+                <span className="relative inline-flex">
+                  <Heart size={20} />
+                  {totalWishlistItems > 0 ? (
+                    <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-black text-white text-[10px] leading-4 text-center">
+                      {totalWishlistItems}
+                    </span>
+                  ) : null}
+                </span>
               </button>
 
               <button
