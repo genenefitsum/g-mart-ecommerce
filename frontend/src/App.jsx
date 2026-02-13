@@ -83,7 +83,6 @@ function App() {
                 <Products
                   searchQuery={searchQuery}
                   refreshKey={productsRefreshKey}
-                  onRequireAuth={() => setShowAuth(true)}
                 />
               </>
             }

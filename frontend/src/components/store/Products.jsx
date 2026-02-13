@@ -52,15 +52,12 @@ const formatPrice = (value) => {
     }
 };
 
-const Products = ({ searchQuery = "", refreshKey = 0, onRequireAuth }) => {
+const Products = ({ searchQuery = "", refreshKey = 0 }) => {
     const { addToCart } = useCart();
     const { toggleWishlist, hasInWishlist } = useWishlist();
     
     const handleWishlist = async (product) => {
-        const result = await toggleWishlist(product);
-        if (!result?.ok && typeof onRequireAuth === "function") {
-            onRequireAuth();
-        }
+        await toggleWishlist(product);
     };
 
     const [products, setProducts] = useState([]);

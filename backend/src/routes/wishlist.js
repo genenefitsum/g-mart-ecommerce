@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import mongoose from 'mongoose'
 
 import { getMongoStatus } from '../db/mongo.js'
 import { requireAuth } from '../middleware/requireAuth.js'
@@ -59,12 +60,16 @@ wishlistRouter.post('/:productId', requireAuth, async (req, res, next) => {
     const productId = String(req.params?.productId ?? '').trim()
     if (!productId) return res.status(400).json({ ok: false, error: 'Missing productId' })
 
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid productId' })
+    }
+
     const product = await Product.findById(productId).select('_id').lean()
     if (!product) return res.status(404).json({ ok: false, error: 'Product not found' })
 
     await Wishlist.updateOne(
       { userId },
-      { $setOnInsert: { userId, productIds: [] }, $addToSet: { productIds: product._id } },
+      { $setOnInsert: { userId }, $addToSet: { productIds: product._id } },
       { upsert: true },
     )
 
@@ -84,9 +89,15 @@ wishlistRouter.delete('/:productId', requireAuth, async (req, res, next) => {
     const productId = String(req.params?.productId ?? '').trim()
     if (!productId) return res.status(400).json({ ok: false, error: 'Missing productId' })
 
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid productId' })
+    }
+
+    const productObjectId = new mongoose.Types.ObjectId(productId)
+
     await Wishlist.updateOne(
       { userId },
-      { $pull: { productIds: productId } },
+      { $setOnInsert: { userId }, $pull: { productIds: productObjectId } },
       { upsert: true },
     )
 

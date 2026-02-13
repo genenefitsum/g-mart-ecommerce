@@ -10,6 +10,55 @@ export const api = axios.create({
   timeout: 10000,
 })
 
+let refreshInFlight = null
+
+async function refreshAccessTokenOnce() {
+  if (!refreshInFlight) {
+    refreshInFlight = api
+      .post('/auth/refresh', null, { __skipAuthRefresh: true })
+      .then((res) => res.data)
+      .finally(() => {
+        refreshInFlight = null
+      })
+  }
+  return refreshInFlight
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const status = error?.response?.status
+    const config = error?.config
+
+    // If we can't inspect the request, just fail.
+    if (!config) return Promise.reject(error)
+
+    // Don't try to refresh for auth endpoints or explicitly skipped requests.
+    const url = String(config.url ?? '')
+    const isAuthCall = url.startsWith('/auth')
+    if (config.__skipAuthRefresh || isAuthCall) {
+      return Promise.reject(error)
+    }
+
+    // Retry once after refreshing token.
+    if (status === 401 && !config.__retried) {
+      config.__retried = true
+
+      try {
+        const data = await refreshAccessTokenOnce()
+        if (data?.ok && data?.accessToken) {
+          setAccessToken(data.accessToken)
+          return api.request(config)
+        }
+      } catch {
+        // fall through
+      }
+    }
+
+    return Promise.reject(error)
+  },
+)
+
 export function setAccessToken(token) {
   if (token) {
     api.defaults.headers.common.Authorization = `Bearer ${token}`

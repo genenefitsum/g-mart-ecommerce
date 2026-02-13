@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
 
 export default function WishlistSideBar() {
-  const { items, isWishlistOpen, setIsWishlistOpen, removeFromWishlist, totalItems } = useWishlist();
+  const { items, isWishlistOpen, setIsWishlistOpen, removeFromWishlist, totalItems, isLoading, error } = useWishlist();
   const { addToCart } = useCart();
 
   const moveToCart = async (item) => {
@@ -69,6 +69,14 @@ export default function WishlistSideBar() {
 
           {/* Items */}
           <div className="flex-1 overflow-y-auto p-5">
+            {isLoading ? (
+              <div className="text-center text-gray-500 font-montserrat py-10">Loading wishlist…</div>
+            ) : null}
+
+            {!isLoading && error ? (
+              <div className="text-center text-gray-500 font-montserrat py-6">{error}</div>
+            ) : null}
+
             {items.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center font-montserrat">
                 <Heart size={48} className="opacity-40 mb-4" />
