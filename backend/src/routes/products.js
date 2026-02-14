@@ -2,6 +2,7 @@ import { Router } from 'express'
 import fs from 'fs'
 import path from 'path'
 import multer from 'multer'
+import mongoose from 'mongoose'
 
 import { getMongoStatus } from '../db/mongo.js'
 import { requireAuth } from '../middleware/requireAuth.js'
@@ -76,8 +77,30 @@ productsRouter.get('/', async (req, res, next) => {
   }
 })
 
+// GET /api/v1/products/:productId
+productsRouter.get('/:productId', async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const productId = String(req.params?.productId ?? '').trim()
+    if (!productId) return res.status(400).json({ ok: false, error: 'Missing productId' })
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid productId' })
+    }
+
+    const product = await Product.findById(productId).lean()
+    if (!product) return res.status(404).json({ ok: false, error: 'Product not found' })
+
+    return res.json({ ok: true, product })
+  } catch (err) {
+    return next(err)
+  }
+})
+
 // POST /api/v1/products (multipart/form-data)
-// fields: name, price, category, description, contactPhone, image(file)
+// fields: name, price, category, description, contactPhone, image(file),
+// optional seller payment fields: telebirrPhone, bankName, bankAccountNumber, bankAccountName
 productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
@@ -86,6 +109,11 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
     const category = String(req.body?.category ?? '').trim()
     const description = String(req.body?.description ?? '').trim()
     const contactPhone = String(req.body?.contactPhone ?? '').trim()
+
+    const telebirrPhone = String(req.body?.telebirrPhone ?? '').trim()
+    const bankName = String(req.body?.bankName ?? '').trim()
+    const bankAccountNumber = String(req.body?.bankAccountNumber ?? '').trim()
+    const bankAccountName = String(req.body?.bankAccountName ?? '').trim()
 
     const rawPrice = req.body?.price
     const price = Number(rawPrice)
@@ -102,6 +130,16 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
       return res.status(400).json({ ok: false, error: 'Image is required' })
     }
 
+    const hasTelebirr = Boolean(telebirrPhone)
+    const hasBank = Boolean(bankAccountNumber)
+    if (!hasTelebirr && !hasBank) {
+      return res.status(400).json({ ok: false, error: 'Provide Telebirr or bank payment info' })
+    }
+
+    if (hasBank && (!bankName || !bankAccountName)) {
+      return res.status(400).json({ ok: false, error: 'Bank name and account name are required' })
+    }
+
     const imagePath = `/uploads/products/${req.file.filename}`
     const imageUrl = `${req.protocol}://${req.get('host')}${imagePath}`
 
@@ -113,6 +151,12 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
       contactPhone,
       imageUrl,
       sellerUserId: req.auth?.userId ?? null,
+      sellerPayment: {
+        telebirrPhone,
+        bankName,
+        bankAccountNumber,
+        bankAccountName,
+      },
     })
 
     return res.status(201).json({ ok: true, product })

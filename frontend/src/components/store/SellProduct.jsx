@@ -31,6 +31,11 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
     const [contactPhone, setContactPhone] = useState('')
     const [imageFile, setImageFile] = useState(null)
 
+    const [telebirrPhone, setTelebirrPhone] = useState('')
+    const [bankName, setBankName] = useState('')
+    const [bankAccountNumber, setBankAccountNumber] = useState('')
+    const [bankAccountName, setBankAccountName] = useState('')
+
     const canSubmit = useMemo(() => {
         if (!name.trim()) return false
         if (!price || !Number.isFinite(Number(price)) || Number(price) < 0) return false
@@ -38,8 +43,14 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
         if (!description.trim()) return false
         if (!contactPhone.trim()) return false
         if (!imageFile) return false
+
+        const hasTelebirr = Boolean(telebirrPhone.trim())
+        const hasBank = Boolean(bankAccountNumber.trim())
+        if (!hasTelebirr && !hasBank) return false
+        if (hasBank && (!bankName.trim() || !bankAccountName.trim())) return false
+
         return true
-    }, [name, price, category, description, contactPhone, imageFile])
+    }, [name, price, category, description, contactPhone, imageFile, telebirrPhone, bankName, bankAccountNumber, bankAccountName])
 
     const resetForm = () => {
         setName('')
@@ -48,6 +59,10 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
         setDescription('')
         setContactPhone('')
         setImageFile(null)
+        setTelebirrPhone('')
+        setBankName('')
+        setBankAccountNumber('')
+        setBankAccountName('')
         setError('')
     }
 
@@ -85,6 +100,11 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
             formData.append('description', description.trim())
             formData.append('contactPhone', contactPhone.trim())
             formData.append('image', imageFile)
+
+            if (telebirrPhone.trim()) formData.append('telebirrPhone', telebirrPhone.trim())
+            if (bankName.trim()) formData.append('bankName', bankName.trim())
+            if (bankAccountNumber.trim()) formData.append('bankAccountNumber', bankAccountNumber.trim())
+            if (bankAccountName.trim()) formData.append('bankAccountName', bankAccountName.trim())
 
             const data = await apiCreateProduct(formData)
             if (!data?.ok) {
@@ -209,6 +229,59 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
                                         onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
                                         required
                                     />
+                                </div>
+
+                                <div className="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div className="text-sm font-semibold text-gray-900">Payment info</div>
+                                    <div className="mt-1 text-xs text-gray-500">
+                                        Buyers will use this to pay you (Telebirr or bank transfer).
+                                    </div>
+
+                                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="sell-telebirr">Telebirr phone (optional)</Label>
+                                            <Input
+                                                id="sell-telebirr"
+                                                value={telebirrPhone}
+                                                onChange={(e) => setTelebirrPhone(e.target.value)}
+                                                placeholder="+251 ..."
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="sell-bank">Bank account number (optional)</Label>
+                                            <Input
+                                                id="sell-bank"
+                                                value={bankAccountNumber}
+                                                onChange={(e) => setBankAccountNumber(e.target.value)}
+                                                placeholder="Account number"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="sell-bank-name">Bank name (required if bank used)</Label>
+                                            <Input
+                                                id="sell-bank-name"
+                                                value={bankName}
+                                                onChange={(e) => setBankName(e.target.value)}
+                                                placeholder="e.g. CBE"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="sell-bank-holder">Account holder name (required if bank used)</Label>
+                                            <Input
+                                                id="sell-bank-holder"
+                                                value={bankAccountName}
+                                                onChange={(e) => setBankAccountName(e.target.value)}
+                                                placeholder="Full name"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 text-xs text-gray-500">
+                                        Add at least one payment method.
+                                    </div>
                                 </div>
 
                                 {error ? <div className="text-sm text-red-600">{error}</div> : null}

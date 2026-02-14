@@ -13,6 +13,7 @@ import Footer from './components/layouts/Footer.jsx'
 import AuthScreen from './components/store/AuthScreen.jsx'
 import CategoryProductsPage from './components/store/CategoryProductsPage.jsx'
 import Checkout from './pages/Checkout.jsx'
+import ProductDetails from './pages/ProductDetails.jsx'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 
@@ -104,6 +105,7 @@ function App() {
             path="/category/:categoryId"
             element={<CategoryProductsPage searchQuery={searchQuery} />}
           />
+          <Route path="/product/:productId" element={<ProductDetails />} />
           <Route path="/checkout" element={<Checkout />} />
         </Routes>
 

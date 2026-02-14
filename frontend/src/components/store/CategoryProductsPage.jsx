@@ -27,6 +27,12 @@ const normalizeProduct = (product) => {
     featured: Boolean(product?.featured),
     badge: product?.badge ?? undefined,
     image: product?.imageUrl ?? product?.image ?? "",
+    sellerPayment: {
+      telebirrPhone: product?.sellerPayment?.telebirrPhone ?? "",
+      bankName: product?.sellerPayment?.bankName ?? "",
+      bankAccountNumber: product?.sellerPayment?.bankAccountNumber ?? "",
+      bankAccountName: product?.sellerPayment?.bankAccountName ?? "",
+    },
   };
 };
 
@@ -170,17 +176,24 @@ function ProductsGrid({ products, onAddToCart }) {
             className="group rounded-xl border border-gray-200 overflow-hidden bg-white hover:shadow-md transition"
           >
             <div className="relative aspect-square overflow-hidden bg-gray-50">
-              <img
-                src={product.image}
-                alt={product.name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="lazy"
-                decoding="async"
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  e.currentTarget.src = fallbackImage;
-                }}
-              />
+              <button
+                type="button"
+                className="block w-full"
+                onClick={() => navigate(`/product/${product.id}`)}
+                aria-label="View product details"
+              >
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.src = fallbackImage;
+                  }}
+                />
+              </button>
 
               {product.badge ? (
                 <span
@@ -213,6 +226,7 @@ function ProductsGrid({ products, onAddToCart }) {
                       price: product.price,
                       image: product.image,
                       category: product.category,
+                      sellerPayment: product.sellerPayment,
                     })
                   }
                 >
@@ -227,7 +241,13 @@ function ProductsGrid({ products, onAddToCart }) {
                 {product.category}
               </p>
               <h3 className="mt-1 text-sm font-semibold text-gray-900 font-montserrat leading-snug line-clamp-2">
-                {product.name}
+                <button
+                  type="button"
+                  className="text-left"
+                  onClick={() => navigate(`/product/${product.id}`)}
+                >
+                  {product.name}
+                </button>
               </h3>
 
               <div className="mt-2 flex items-center gap-2 text-xs">

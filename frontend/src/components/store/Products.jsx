@@ -14,6 +14,7 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { apiListProducts } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 
 const normalizeProduct = (product) => {
     const id = String(product?._id ?? product?.id ?? "");
@@ -28,6 +29,12 @@ const normalizeProduct = (product) => {
         featured: Boolean(product?.featured),
         badge: product?.badge ?? undefined,
         image: product?.imageUrl ?? product?.image ?? "",
+        sellerPayment: {
+            telebirrPhone: product?.sellerPayment?.telebirrPhone ?? "",
+            bankName: product?.sellerPayment?.bankName ?? "",
+            bankAccountNumber: product?.sellerPayment?.bankAccountNumber ?? "",
+            bankAccountName: product?.sellerPayment?.bankAccountName ?? "",
+        },
     };
 };
 
@@ -55,6 +62,7 @@ const formatPrice = (value) => {
 const Products = ({ searchQuery = "", refreshKey = 0 }) => {
     const { addToCart } = useCart();
     const { toggleWishlist, hasInWishlist } = useWishlist();
+    const navigate = useNavigate();
     
     const handleWishlist = async (product) => {
         await toggleWishlist(product);
@@ -239,6 +247,7 @@ const Products = ({ searchQuery = "", refreshKey = 0 }) => {
                         onAddToCart={(product) => addToCart(product)}
                         onToggleWishlist={handleWishlist}
                         hasInWishlist={hasInWishlist}
+                        onOpenProduct={(id) => navigate(`/product/${id}`)}
                     />
                 </div>
             </div>
@@ -246,7 +255,7 @@ const Products = ({ searchQuery = "", refreshKey = 0 }) => {
     );
 };
 
-const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, onToggleWishlist, hasInWishlist }) => {
+const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, onToggleWishlist, hasInWishlist, onOpenProduct }) => {
     const [showAll, setShowAll] = useState(false);
     const visibleProducts = showAll ? products : products.slice(0, 8);
 
@@ -283,17 +292,25 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                         className="group rounded-xl border border-gray-200 overflow-hidden bg-white hover:shadow-md transition"
                     >
                         <div className="relative aspect-square overflow-hidden bg-gray-50">
-                            <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                loading="lazy"
-                                decoding="async"
-                                referrerPolicy="no-referrer"
-                                onError={(e) => {
-                                    e.currentTarget.src = fallbackImage;
+                            <button
+                                type="button"
+                                className="block w-full"
+                                onClick={() => {
+                                    if (typeof onOpenProduct === 'function') onOpenProduct(product.id)
                                 }}
-                            />
+                            >
+                                <img
+                                    src={product.image}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    loading="lazy"
+                                    decoding="async"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => {
+                                        e.currentTarget.src = fallbackImage;
+                                    }}
+                                />
+                            </button>
 
                             {product.badge && (
                                 <span
@@ -357,6 +374,7 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                                             price: product.price,
                                             image: product.image,
                                             category: product.category,
+                                            sellerPayment: product.sellerPayment,
                                         })
                                     }
                                 >
@@ -370,9 +388,17 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                             <p className="text-[10px] tracking-wide text-gray-500 font-montserrat uppercase">
                                 {product.category}
                             </p>
-                            <h3 className="mt-1 text-sm font-semibold text-gray-900 font-montserrat leading-snug line-clamp-2">
-                                {product.name}
-                            </h3>
+                            <button
+                                type="button"
+                                className="mt-1 block w-full text-left"
+                                onClick={() => {
+                                    if (typeof onOpenProduct === 'function') onOpenProduct(product.id)
+                                }}
+                            >
+                                <h3 className="text-sm font-semibold text-gray-900 font-montserrat leading-snug line-clamp-2">
+                                    {product.name}
+                                </h3>
+                            </button>
 
                             <div className="mt-2 flex items-center gap-2 text-xs">
                                 <div className="flex items-center gap-1 text-amber-500">

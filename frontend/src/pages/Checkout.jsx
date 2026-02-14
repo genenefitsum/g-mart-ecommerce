@@ -35,11 +35,60 @@ export default function Checkout() {
       .map((it) => ({ productId: String(it.id), quantity: Number(it.quantity) }))
   }, [items])
 
+  const sellerPayment = useMemo(() => {
+    const list = Array.isArray(items) ? items : []
+    if (!list.length) return null
+
+    const first = list[0]?.sellerPayment ?? null
+    if (!first) return null
+
+    const firstKey = JSON.stringify({
+      telebirrPhone: first?.telebirrPhone ?? '',
+      bankName: first?.bankName ?? '',
+      bankAccountNumber: first?.bankAccountNumber ?? '',
+      bankAccountName: first?.bankAccountName ?? '',
+    })
+
+    const mixed = list.some((it) => {
+      const sp = it?.sellerPayment ?? {}
+      const key = JSON.stringify({
+        telebirrPhone: sp?.telebirrPhone ?? '',
+        bankName: sp?.bankName ?? '',
+        bankAccountNumber: sp?.bankAccountNumber ?? '',
+        bankAccountName: sp?.bankAccountName ?? '',
+      })
+      return key !== firstKey
+    })
+
+    if (mixed) return { mixed: true }
+
+    const normalized = {
+      telebirrPhone: first?.telebirrPhone ?? '',
+      bankName: first?.bankName ?? '',
+      bankAccountNumber: first?.bankAccountNumber ?? '',
+      bankAccountName: first?.bankAccountName ?? '',
+    }
+
+    const hasTelebirr = Boolean(String(normalized.telebirrPhone).trim())
+    const hasBank = Boolean(String(normalized.bankAccountNumber).trim())
+
+    return {
+      mixed: false,
+      hasTelebirr,
+      hasBank,
+      ...normalized,
+    }
+  }, [items])
+
   const canSubmit =
     Boolean(user) &&
     cartPayloadItems.length > 0 &&
     !isSubmitting &&
-    Boolean(proofFile)
+    Boolean(proofFile) &&
+    Boolean(sellerPayment) &&
+    sellerPayment?.mixed === false &&
+    (sellerPayment?.hasTelebirr || sellerPayment?.hasBank) &&
+    (paymentMethod === 'telebirr' ? sellerPayment?.hasTelebirr : sellerPayment?.hasBank)
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -58,6 +107,21 @@ export default function Checkout() {
 
     if (!proofFile) {
       setError('Please upload a payment screenshot/proof.')
+      return
+    }
+
+    if (!sellerPayment || sellerPayment?.mixed) {
+      setError('Please checkout items from one seller at a time.')
+      return
+    }
+
+    if (paymentMethod === 'telebirr' && !sellerPayment?.hasTelebirr) {
+      setError('Seller has no Telebirr payment info. Choose bank transfer.')
+      return
+    }
+
+    if (paymentMethod === 'bank' && !sellerPayment?.hasBank) {
+      setError('Seller has no bank payment info. Choose Telebirr.')
       return
     }
 
@@ -117,6 +181,44 @@ export default function Checkout() {
       </div>
 
       <div className="grid gap-5">
+        <Card className="rounded-2xl border border-gray-200 p-5">
+          <div className="text-base font-semibold text-gray-900">Pay To</div>
+
+          {sellerPayment?.mixed ? (
+            <div className="mt-2 text-sm text-red-600">
+              Your cart contains items from different sellers. Please checkout one seller at a time.
+            </div>
+          ) : null}
+
+          {!sellerPayment ? (
+            <div className="mt-2 text-sm text-gray-600">Add items to cart to see payment details.</div>
+          ) : sellerPayment?.mixed ? null : (
+            <div className="mt-3 grid gap-3 text-sm">
+              {paymentMethod === 'telebirr' ? (
+                sellerPayment.hasTelebirr ? (
+                  <div className="rounded-xl border border-gray-200 p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-500">Telebirr</div>
+                    <div className="mt-1 font-semibold text-gray-900">{sellerPayment.telebirrPhone}</div>
+                    <div className="mt-1 text-xs text-gray-500">Pay to this number, then upload the screenshot below.</div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-red-600">Seller has no Telebirr info.</div>
+                )
+              ) : sellerPayment.hasBank ? (
+                <div className="rounded-xl border border-gray-200 p-4">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Bank transfer</div>
+                  <div className="mt-1 font-semibold text-gray-900">{sellerPayment.bankName}</div>
+                  <div className="mt-1 text-gray-800">Account: {sellerPayment.bankAccountNumber}</div>
+                  <div className="mt-1 text-gray-800">Name: {sellerPayment.bankAccountName}</div>
+                  <div className="mt-1 text-xs text-gray-500">Transfer to this account, then upload the screenshot below.</div>
+                </div>
+              ) : (
+                <div className="text-sm text-red-600">Seller has no bank info.</div>
+              )}
+            </div>
+          )}
+        </Card>
+
         <Card className="rounded-2xl border border-gray-200 p-5">
           <div className="text-base font-semibold text-gray-900">Order Summary</div>
           <div className="mt-3 space-y-3">

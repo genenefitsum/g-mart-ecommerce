@@ -85,7 +85,7 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
 
     const productObjectIds = parsed.map((it) => new mongoose.Types.ObjectId(it.productId))
     const products = await Product.find({ _id: { $in: productObjectIds } })
-      .select('_id name price imageUrl')
+      .select('_id name price imageUrl sellerPayment')
       .lean()
 
     const byId = new Map(products.map((p) => [String(p._id), p]))
@@ -105,6 +105,38 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
         imageUrl: p.imageUrl ?? '',
       }
     })
+
+    const recipientBase = {
+      telebirrPhone: String(products?.[0]?.sellerPayment?.telebirrPhone ?? '').trim(),
+      bankName: String(products?.[0]?.sellerPayment?.bankName ?? '').trim(),
+      bankAccountNumber: String(products?.[0]?.sellerPayment?.bankAccountNumber ?? '').trim(),
+      bankAccountName: String(products?.[0]?.sellerPayment?.bankAccountName ?? '').trim(),
+    }
+
+    const recipientKey = JSON.stringify(recipientBase)
+    const mixedRecipient = products.some((p) => {
+      const sp = p?.sellerPayment ?? {}
+      const key = JSON.stringify({
+        telebirrPhone: String(sp?.telebirrPhone ?? '').trim(),
+        bankName: String(sp?.bankName ?? '').trim(),
+        bankAccountNumber: String(sp?.bankAccountNumber ?? '').trim(),
+        bankAccountName: String(sp?.bankAccountName ?? '').trim(),
+      })
+      return key !== recipientKey
+    })
+
+    if (mixedRecipient) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Multiple sellers in one order is not supported yet. Checkout separately.',
+      })
+    }
+
+    const hasTelebirr = Boolean(recipientBase.telebirrPhone)
+    const hasBank = Boolean(recipientBase.bankAccountNumber)
+    if (!hasTelebirr && !hasBank) {
+      return res.status(400).json({ ok: false, error: 'Seller payment info is missing' })
+    }
 
     const subtotal = orderItems.reduce((sum, it) => sum + it.unitPrice * it.quantity, 0)
 
@@ -135,6 +167,7 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
         method,
         transactionRef,
       },
+      recipient: recipientBase,
       status: 'pending_payment',
     })
 

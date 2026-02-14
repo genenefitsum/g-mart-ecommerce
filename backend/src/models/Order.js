@@ -93,6 +93,12 @@ const orderSchema = new Schema(
 				default: null,
 			},
 		},
+		recipient: {
+			telebirrPhone: { type: String, trim: true, maxlength: 40, default: '' },
+			bankName: { type: String, trim: true, maxlength: 80, default: '' },
+			bankAccountNumber: { type: String, trim: true, maxlength: 80, default: '' },
+			bankAccountName: { type: String, trim: true, maxlength: 140, default: '' },
+		},
 		status: {
 			type: String,
 			enum: ['pending_payment', 'payment_submitted', 'processing', 'completed', 'cancelled'],

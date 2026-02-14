@@ -105,6 +105,11 @@ export async function apiCreateProduct(formData) {
   return res.data
 }
 
+export async function apiGetProduct(productId) {
+  const res = await api.get(`/products/${productId}`)
+  return res.data
+}
+
 export async function apiGetWishlist() {
   const res = await api.get('/wishlist')
   return res.data

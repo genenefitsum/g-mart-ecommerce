@@ -49,6 +49,32 @@ const productSchema = new Schema(
 			default: null,
 			index: true,
 		},
+		sellerPayment: {
+			telebirrPhone: {
+				type: String,
+				trim: true,
+				maxlength: 40,
+				default: '',
+			},
+			bankName: {
+				type: String,
+				trim: true,
+				maxlength: 80,
+				default: '',
+			},
+			bankAccountNumber: {
+				type: String,
+				trim: true,
+				maxlength: 80,
+				default: '',
+			},
+			bankAccountName: {
+				type: String,
+				trim: true,
+				maxlength: 140,
+				default: '',
+			},
+		},
 	},
 	{ timestamps: true },
 )
