@@ -17,7 +17,7 @@ const authIdentitySchema = new Schema ({
     },
     providerUserId: {
         type: String,
-        default: null,
+        default: undefined,
         trim: true,
         index: true,
     },
@@ -49,11 +49,6 @@ const authIdentitySchema = new Schema ({
     },
 
     { timestamps: true }
-)
-
-authIdentitySchema.index(
-    { provider: 1, providerUserId: 1 },
-    { unique: true, sparse: true },
 )
 
 authIdentitySchema.index(

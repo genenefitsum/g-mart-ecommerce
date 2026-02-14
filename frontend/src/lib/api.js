@@ -87,6 +87,21 @@ export async function apiMe() {
   return res.data
 }
 
+export async function apiUpdateMe({ name }) {
+  const res = await api.patch('/auth/me', { name })
+  return res.data
+}
+
+export async function apiChangePassword({ currentPassword, newPassword }) {
+  const res = await api.post('/auth/change-password', { currentPassword, newPassword })
+  return res.data
+}
+
+export async function apiDeleteAccount({ password }) {
+  const res = await api.delete('/auth/account', { data: { password } })
+  return res.data
+}
+
 export async function apiLogout() {
   const res = await api.post('/auth/logout')
   return res.data

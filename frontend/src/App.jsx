@@ -14,6 +14,7 @@ import AuthScreen from './components/store/AuthScreen.jsx'
 import CategoryProductsPage from './components/store/CategoryProductsPage.jsx'
 import Checkout from './pages/Checkout.jsx'
 import ProductDetails from './pages/ProductDetails.jsx'
+import Account from './pages/Account.jsx'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 
@@ -112,6 +113,10 @@ function App() {
           />
           <Route path="/product/:productId" element={<ProductDetails />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route
+            path="/account"
+            element={<Account onRequireAuth={() => setShowAuth(true)} />}
+          />
         </Routes>
 
         <WishlistSideBar />

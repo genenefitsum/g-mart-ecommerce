@@ -1,5 +1,6 @@
 import { createServer } from './server.js'
 import { connectMongo } from './db/mongo.js'
+import AuthIdentity from './models/AuthIdentity.js'
 
 const port = Number(process.env.PORT ?? 4000)
 
@@ -8,6 +9,9 @@ const app = createServer()
 try {
   await connectMongo()
   if (process.env.MONGO_URI) {
+    if (process.env.NODE_ENV !== 'production') {
+      await AuthIdentity.syncIndexes()
+    }
     // eslint-disable-next-line no-console
     console.log('MongoDB connected')
   } else {

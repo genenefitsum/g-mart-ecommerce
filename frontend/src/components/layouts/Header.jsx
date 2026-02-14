@@ -59,6 +59,16 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
     setIsWishlistOpen(true);
   };
 
+  const openAccount = () => {
+    setIsMobileMenuOpen(false);
+    setIsMobileSearchOpen(false);
+    if (user) {
+      navigate("/account");
+      return;
+    }
+    openAuth();
+  };
+
   // Smooth scroll function
   const handleScroll = (id) => {
     if (location.pathname !== "/") {
@@ -211,7 +221,7 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                             "flex items-center justify-center gap-2 transition"
                           }
                           aria-label="Account"
-                          onClick={() => setIsMobileMenuOpen(false)}
+                          onClick={openAccount}
                         >
                           <User size={18} className="text-gray-700" />
                           Account
@@ -270,6 +280,7 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                   className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
                   aria-label="Account"
                   title="Account"
+                  onClick={openAccount}
                 >
                   <User size={22} />
                 </button>
@@ -427,6 +438,7 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                   className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
                   aria-label="Account"
                   title="Account"
+                  onClick={openAccount}
                 >
                   <User size={20} />
                 </button>

@@ -13,6 +13,9 @@ import {
   verifyRefreshToken,
 } from '../services/jwt.js'
 import { requireAuth } from '../middleware/requireAuth.js'
+import Wishlist from '../models/Wishlist.js'
+import Order from '../models/Order.js'
+import Product from '../models/Product.js'
 
 export const authRouter = Router()
 
@@ -115,7 +118,6 @@ authRouter.post('/register', async (req, res, next) => {
     const authIdentity = await AuthIdentity.create({
       userId: user._id,
       provider: 'local',
-      providerUserId: null,
       emailLower,
       passwordHash: null,
       emailVerified: false,
@@ -269,6 +271,8 @@ authRouter.post('/logout', async (req, res, next) => {
 // GET /api/v1/auth/me
 authRouter.get('/me', requireAuth, async (req, res, next) => {
   try {
+    if (!mongoGuard(req, res)) return
+
     const user = await User.findById(req.auth.userId)
     if (!user) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' })
@@ -278,6 +282,108 @@ authRouter.get('/me', requireAuth, async (req, res, next) => {
       ok: true,
       user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
     })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// PATCH /api/v1/auth/me
+// body: { name }
+authRouter.patch('/me', requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const name = String(req.body?.name ?? '').trim()
+    if (!name || name.length < 2 || name.length > 50) {
+      return res.status(400).json({ ok: false, error: 'Invalid name' })
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.auth.userId,
+      { $set: { name } },
+      { new: true },
+    )
+
+    if (!user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    return res.json({
+      ok: true,
+      user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
+    })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// POST /api/v1/auth/change-password
+// body: { currentPassword, newPassword }
+authRouter.post('/change-password', requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const currentPassword = String(req.body?.currentPassword ?? '')
+    const newPassword = String(req.body?.newPassword ?? '')
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ ok: false, error: 'Missing fields' })
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ ok: false, error: 'Password too short' })
+    }
+
+    const user = await User.findById(req.auth.userId).select('+passwordHash')
+    if (!user) return res.status(401).json({ ok: false, error: 'Unauthorized' })
+
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash)
+    if (!ok) return res.status(401).json({ ok: false, error: 'Invalid credentials' })
+
+    const passwordHash = await bcrypt.hash(newPassword, 12)
+    await User.updateOne({ _id: user._id }, { $set: { passwordHash } })
+
+    // Require re-auth by revoking refresh tokens.
+    await RefreshToken.updateMany({ userId: user._id, revokedAt: null }, { $set: { revokedAt: new Date() } })
+    clearRefreshCookie(res)
+
+    return res.json({ ok: true, requiresReauth: true })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// DELETE /api/v1/auth/account
+// body: { password }
+authRouter.delete('/account', requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const password = String(req.body?.password ?? '')
+    if (!password) {
+      return res.status(400).json({ ok: false, error: 'Password is required' })
+    }
+
+    const user = await User.findById(req.auth.userId).select('+passwordHash')
+    if (!user) return res.status(401).json({ ok: false, error: 'Unauthorized' })
+
+    const ok = await bcrypt.compare(password, user.passwordHash)
+    if (!ok) return res.status(401).json({ ok: false, error: 'Invalid credentials' })
+
+    const userId = user._id
+
+    await Promise.all([
+      RefreshToken.deleteMany({ userId }),
+      AuthIdentity.deleteMany({ userId }),
+      Wishlist.deleteOne({ userId }),
+      Order.deleteMany({ userId }),
+      Product.deleteMany({ sellerUserId: userId }),
+    ])
+
+    await User.deleteOne({ _id: userId })
+
+    clearRefreshCookie(res)
+    return res.json({ ok: true })
   } catch (err) {
     return next(err)
   }
