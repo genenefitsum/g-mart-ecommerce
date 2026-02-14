@@ -1,6 +1,6 @@
 // import './App.css';
 import { useEffect, useState } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/layouts/Header.jsx'
 import HeroSection from './components/store/Hero.jsx'
 import CategoriesSection from './components/store/Categories.jsx'
@@ -12,6 +12,7 @@ import About from './components/store/About.jsx'
 import Footer from './components/layouts/Footer.jsx'
 import AuthScreen from './components/store/AuthScreen.jsx'
 import CategoryProductsPage from './components/store/CategoryProductsPage.jsx'
+import Checkout from './pages/Checkout.jsx'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 
@@ -22,9 +23,21 @@ import './index.css'
 function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showAuth, setShowAuth] = useState(false)
+  const [authRedirectTo, setAuthRedirectTo] = useState('')
   const [productsRefreshKey, setProductsRefreshKey] = useState(0)
   const { user, isLoading } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const requireAuthThen = (path) => {
+    if (user) {
+      navigate(path)
+      return
+    }
+
+    setAuthRedirectTo(path)
+    setShowAuth(true)
+  }
 
   useEffect(() => {
     if (location.hash) {
@@ -91,10 +104,11 @@ function App() {
             path="/category/:categoryId"
             element={<CategoryProductsPage searchQuery={searchQuery} />}
           />
+          <Route path="/checkout" element={<Checkout />} />
         </Routes>
 
         <WishlistSideBar />
-        <CartSideBar />
+        <CartSideBar onCheckout={() => requireAuthThen('/checkout')} />
 
         <SellProduct
           onCreated={() => setProductsRefreshKey((k) => k + 1)}
@@ -112,7 +126,16 @@ function App() {
           className="w-[min(92vw,520px)] max-w-none rounded-3xl border border-gray-200 bg-white p-6 sm:p-7"
           overlayClassName="bg-black/30 backdrop-blur-sm"
         >
-          <AuthScreen onSuccess={() => setShowAuth(false)} />
+          <AuthScreen
+            onSuccess={() => {
+              setShowAuth(false)
+
+              if (authRedirectTo) {
+                navigate(authRedirectTo)
+                setAuthRedirectTo('')
+              }
+            }}
+          />
         </DialogContent>
       </Dialog>
 

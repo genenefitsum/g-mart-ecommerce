@@ -3,7 +3,7 @@ import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
 
-export default function CartSideBar() {
+export default function CartSideBar({ onCheckout }) {
 const {
     items,
     isCartOpen,
@@ -146,7 +146,13 @@ const startShopping = () => {
                     <span>Subtotal</span>
                     <span>${totalPrice.toFixed(2)}</span>
                 </div>
-                <button className="w-full bg-black text-white py-3 rounded">
+                <button
+                    type="button"
+                    className="w-full bg-black text-white py-3 rounded"
+                    onClick={() => {
+                        if (typeof onCheckout === 'function') onCheckout()
+                    }}
+                >
                     Checkout
                 </button>
             </div>

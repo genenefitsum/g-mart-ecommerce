@@ -119,3 +119,23 @@ export async function apiRemoveFromWishlist(productId) {
   const res = await api.delete(`/wishlist/${productId}`)
   return res.data
 }
+
+export async function apiCreateOrder(payload) {
+  const res = await api.post('/orders', payload)
+  return res.data
+}
+
+export async function apiUploadOrderPaymentProof(orderId, formData) {
+  const res = await api.post(`/orders/${orderId}/payment-proof`, formData)
+  return res.data
+}
+
+export async function apiListOrders() {
+  const res = await api.get('/orders')
+  return res.data
+}
+
+export async function apiGetOrder(orderId) {
+  const res = await api.get(`/orders/${orderId}`)
+  return res.data
+}
