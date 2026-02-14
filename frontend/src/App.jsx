@@ -98,6 +98,11 @@ function App() {
                   searchQuery={searchQuery}
                   refreshKey={productsRefreshKey}
                 />
+
+                <SellProduct
+                  onCreated={() => setProductsRefreshKey((k) => k + 1)}
+                  onRequireAuth={() => setShowAuth(true)}
+                />
               </>
             }
           />
@@ -112,10 +117,6 @@ function App() {
         <WishlistSideBar />
         <CartSideBar onCheckout={() => requireAuthThen('/checkout')} />
 
-        <SellProduct
-          onCreated={() => setProductsRefreshKey((k) => k + 1)}
-          onRequireAuth={() => setShowAuth(true)}
-        />
       </WishlistProvider>
 
       <Dialog
