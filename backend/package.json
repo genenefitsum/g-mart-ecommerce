@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/index.js",
+    "dev": "NODE_ENV=development node --watch src/index.js",
     "start": "node src/index.js",
     "seed:products": "node src/seed/products.js",
     "test": "node --test test/*.test.js --test-concurrency=1"
