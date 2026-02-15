@@ -7,6 +7,7 @@ import {
   apiRegister,
   setAccessToken,
 } from '@/lib/api'
+import { toErrorMessage } from '@/lib/errors'
 
 const AuthContext = createContext(null)
 
@@ -60,11 +61,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       setUser(null)
       setAccess(null)
-      const message =
-        err?.response?.data?.error ||
-        err?.message ||
-        'Login failed'
-      setError(message)
+      setError(toErrorMessage(err, 'Login failed'))
       return { ok: false }
     } finally {
       setIsLoading(false)
@@ -90,11 +87,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       setUser(null)
       setAccess(null)
-      const message =
-        err?.response?.data?.error ||
-        err?.message ||
-        'Signup failed'
-      setError(message)
+      setError(toErrorMessage(err, 'Signup failed'))
       return { ok: false }
     } finally {
       setIsLoading(false)

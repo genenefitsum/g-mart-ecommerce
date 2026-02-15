@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { apiCreateProduct } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
+import { toErrorMessage } from '@/lib/errors'
 
 const CATEGORIES = [
     "Men's",
@@ -115,11 +116,7 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
             resetForm()
             if (typeof onCreated === 'function') onCreated(data.product)
         } catch (err) {
-            const message =
-                err?.response?.data?.error ||
-                err?.message ||
-                'Failed to create product'
-            setError(message)
+            setError(toErrorMessage(err, 'Failed to create product'))
         } finally {
             setIsSubmitting(false)
         }
@@ -284,7 +281,7 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
                                     </div>
                                 </div>
 
-                                {error ? <div className="text-sm text-red-600">{error}</div> : null}
+                                {error ? <div className="text-sm text-red-600">{toErrorMessage(error, '')}</div> : null}
 
                                 <div className="flex justify-end gap-2 pt-1">
                                     <Button

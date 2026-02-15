@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { apiAddToWishlist, apiGetWishlist, apiRemoveFromWishlist } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { toErrorMessage } from "@/lib/errors";
 
 const WishlistContext = createContext(null);
 
@@ -71,7 +72,7 @@ export const WishlistProvider = ({ children, onRequireAuth: _onRequireAuth }) =>
       if (data?.ok && Array.isArray(data.items)) {
         setItems(data.items);
       } else {
-        setError(data?.error || "Failed to load wishlist");
+        setError(toErrorMessage(data?.error, "Failed to load wishlist"));
       }
     } catch {
       // ignore
@@ -144,17 +145,13 @@ export const WishlistProvider = ({ children, onRequireAuth: _onRequireAuth }) =>
         setItems(data.items);
         setError("");
       } else {
-        setError(data?.error || "Failed to save wishlist")
+        setError(toErrorMessage(data?.error, "Failed to save wishlist"))
       }
       return { ok: Boolean(data?.ok) };
     } catch (err) {
       // Keep the optimistic add so the drawer behaves like Cart.
       // If the API is temporarily unavailable, the item remains visible.
-      const message =
-        err?.response?.data?.error ||
-        err?.message ||
-        "Could not save wishlist right now"
-      setError(message)
+      setError(toErrorMessage(err, "Could not save wishlist right now"))
       return { ok: false };
     }
   };

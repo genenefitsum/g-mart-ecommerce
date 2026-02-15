@@ -5,6 +5,7 @@ import { ArrowLeft, ShoppingCart } from 'lucide-react'
 import { apiGetProduct } from '@/lib/api'
 import { useCart } from '@/context/CartContext'
 import { Button } from '@/components/ui/button'
+import { toErrorMessage } from '@/lib/errors'
 
 const fallbackImage = `data:image/svg+xml,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
@@ -56,7 +57,7 @@ export default function ProductDetails() {
         if (!p.id) throw new Error('Product not found')
         if (!cancelled) setProduct(p)
       } catch (err) {
-        if (!cancelled) setError(err?.message || 'Failed to load product')
+        if (!cancelled) setError(toErrorMessage(err, 'Failed to load product'))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -90,7 +91,7 @@ export default function ProductDetails() {
           <ArrowLeft />
           Back
         </Button>
-        <div className="mt-4 text-sm text-red-600">{error || 'Product not found'}</div>
+        <div className="mt-4 text-sm text-red-600">{toErrorMessage(error || 'Product not found', '')}</div>
       </div>
     )
   }

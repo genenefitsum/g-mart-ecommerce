@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
 import { apiCreateOrder, apiUploadOrderPaymentProof } from '@/lib/api'
+import { toErrorMessage } from '@/lib/errors'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -165,7 +166,7 @@ export default function Checkout() {
         navigate('/')
       }, 900)
     } catch (err) {
-      setError(err?.message || 'Checkout failed')
+      setError(toErrorMessage(err, 'Checkout failed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -344,7 +345,7 @@ export default function Checkout() {
             </div>
           </Card>
 
-          {error ? <div className="text-sm text-red-600">{error}</div> : null}
+          {error ? <div className="text-sm text-red-600">{toErrorMessage(error, '')}</div> : null}
           {successOrderId ? (
             <div className="text-sm text-green-700">
               Order submitted. Order ID: {successOrderId}

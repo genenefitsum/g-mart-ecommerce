@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, ShoppingCart, Star } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import { apiListProducts } from "@/lib/api";
+import { toErrorMessage } from "@/lib/errors";
 
 const CATEGORY_ID_TO_NAME = {
   mens: "Men's",
@@ -85,11 +86,7 @@ export default function CategoryProductsPage({ searchQuery = "" }) {
         setProducts(list);
       } catch (err) {
         if (cancelled) return;
-        const message =
-          err?.response?.data?.error ||
-          err?.message ||
-          "Failed to load products";
-        setLoadError(message);
+        setLoadError(toErrorMessage(err, "Failed to load products"));
         setProducts([]);
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -151,7 +148,7 @@ export default function CategoryProductsPage({ searchQuery = "" }) {
           {isLoading ? (
             <div className="text-center text-gray-500 font-montserrat py-10">Loading products…</div>
           ) : loadError ? (
-            <div className="text-center text-gray-500 font-montserrat py-10">{loadError}</div>
+            <div className="text-center text-gray-500 font-montserrat py-10">{toErrorMessage(loadError, "")}</div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center text-gray-500 font-montserrat py-10">No products found.</div>
           ) : (

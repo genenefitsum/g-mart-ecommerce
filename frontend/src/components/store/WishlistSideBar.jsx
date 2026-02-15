@@ -3,6 +3,7 @@ import { X, Heart, Trash2, ShoppingCart } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
+import { toErrorMessage } from "@/lib/errors";
 
 export default function WishlistSideBar() {
   const { items, isWishlistOpen, setIsWishlistOpen, removeFromWishlist, totalItems, isLoading, error } = useWishlist();
@@ -74,7 +75,7 @@ export default function WishlistSideBar() {
             ) : null}
 
             {!isLoading && error ? (
-              <div className="text-center text-gray-500 font-montserrat py-6">{error}</div>
+              <div className="text-center text-gray-500 font-montserrat py-6">{toErrorMessage(error, "")}</div>
             ) : null}
 
             {items.length === 0 ? (

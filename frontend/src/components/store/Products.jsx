@@ -14,6 +14,7 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { apiListProducts } from "@/lib/api";
+import { toErrorMessage } from "@/lib/errors";
 import { useNavigate } from "react-router-dom";
 
 const normalizeProduct = (product) => {
@@ -87,8 +88,7 @@ const Products = ({ searchQuery = "", refreshKey = 0 }) => {
                 setProducts(list);
             } catch (err) {
                 if (cancelled) return;
-                const message = err?.response?.data?.error || err?.message || "Failed to load products";
-                setLoadError(message);
+                setLoadError(toErrorMessage(err, "Failed to load products"));
                 setProducts([]);
             } finally {
                 if (!cancelled) setIsLoading(false);
@@ -270,7 +270,7 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
     if (error) {
         return (
             <div className="text-center text-gray-500 font-montserrat py-10">
-                {error}
+                {toErrorMessage(error, "")}
             </div>
         );
     }

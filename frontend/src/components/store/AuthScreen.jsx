@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { toErrorMessage } from '@/lib/errors'
 
 export default function AuthScreen({ onSuccess }) {
   const { login, register, isLoading, error } = useAuth()
@@ -116,7 +117,7 @@ export default function AuthScreen({ onSuccess }) {
             />
           </div>
 
-          {error ? <div className="text-sm text-red-600">{error}</div> : null}
+          {error ? <div className="text-sm text-red-600">{toErrorMessage(error, '')}</div> : null}
 
           <Button type="submit" className="w-full bg-blue-600 text-white hover:bg-blue-700" disabled={isLoading}>
             {isLoading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Sign Up'}
