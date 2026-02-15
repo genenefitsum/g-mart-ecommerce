@@ -5,6 +5,16 @@ function normalizeApiBaseUrl(raw) {
   let url = String(raw).trim()
   if (!url) return null
 
+  // If the user forgets the protocol (common in Vercel env vars), axios treats it as relative.
+  // Normalize to an absolute URL.
+  if (!/^https?:\/\//i.test(url) && !url.startsWith('/')) {
+    if (/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(url)) {
+      url = `http://${url}`
+    } else {
+      url = `https://${url}`
+    }
+  }
+
   url = url.replace(/\/+$/, '')
   if (!/\/api\/v1$/.test(url)) url += '/api/v1'
   return url
