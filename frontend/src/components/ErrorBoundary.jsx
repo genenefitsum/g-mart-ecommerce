@@ -12,7 +12,6 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error) {
     // Keep console output for debugging.
-    // eslint-disable-next-line no-console
     console.error("UI crashed:", error);
   }
 

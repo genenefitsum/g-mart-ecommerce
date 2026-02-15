@@ -164,6 +164,7 @@ export default function CategoryProductsPage({ searchQuery = "" }) {
 }
 
 function ProductsGrid({ products, onAddToCart }) {
+  const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
   const visibleProducts = showAll ? products : products.slice(0, 8);
 

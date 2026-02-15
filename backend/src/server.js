@@ -63,12 +63,16 @@ export function createServer() {
         res.json({ ok: true, mongo: getMongoStatus() })
     })
 
+    const frontendDistPath = path.resolve(__dirname, '../../frontend/dist')
+    const hasFrontendBuild = fs.existsSync(
+        path.join(frontendDistPath, 'index.html'),
+    )
+
     const shouldServeFrontend =
         process.env.SERVE_FRONTEND === 'true' ||
-        process.env.NODE_ENV === 'production'
+        (process.env.NODE_ENV === 'production' && hasFrontendBuild)
 
     if (shouldServeFrontend) {
-        const frontendDistPath = path.resolve(__dirname, '../../frontend/dist')
         app.use(express.static(frontendDistPath))
 
         app.get('*', (req, res, next) => {

@@ -43,7 +43,8 @@ function clearGuestWishlist() {
   }
 }
 
-export const WishlistProvider = ({ children, onRequireAuth }) => {
+export const WishlistProvider = ({ children, onRequireAuth: _onRequireAuth }) => {
+  void _onRequireAuth;
   const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
