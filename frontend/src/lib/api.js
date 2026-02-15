@@ -1,7 +1,17 @@
 import axios from 'axios'
 
+function normalizeApiBaseUrl(raw) {
+  if (!raw) return null
+  let url = String(raw).trim()
+  if (!url) return null
+
+  url = url.replace(/\/+$/, '')
+  if (!/\/api\/v1$/.test(url)) url += '/api/v1'
+  return url
+}
+
 const baseURL =
-  import.meta.env.VITE_API_URL ??
+  normalizeApiBaseUrl(import.meta.env.VITE_API_URL) ??
   (import.meta.env.PROD ? '/api/v1' : 'http://localhost:4000/api/v1')
 
 export const api = axios.create({
