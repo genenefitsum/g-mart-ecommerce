@@ -395,11 +395,15 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                         </div>
 
                         <div className="p-3 lg:p-3.5">
-                            {!product.canAddToCart ? (
+                            {product.canAddToCart ? (
+                                <div className="mb-2 inline-flex rounded-md bg-blue-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
+                                    admin
+                                </div>
+                            ) : (
                                 <div className="mb-2 inline-flex rounded-md bg-green-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-green-700">
                                     Seller
                                 </div>
-                            ) : null}
+                            )}
 
                             <p className="text-[10px] tracking-wide text-gray-500 font-montserrat uppercase">
                                 {product.category}
