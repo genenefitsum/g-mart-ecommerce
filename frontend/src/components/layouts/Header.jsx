@@ -223,7 +223,6 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                           aria-label="Account"
                           onClick={openAccount}
                         >
-                          <User size={18} className="text-gray-700" />
                           Account
                         </button>
                       ) : (
@@ -273,18 +272,6 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
               >
                 <Search size={22} />
               </button>
-
-              {user ? (
-                <button
-                  type="button"
-                  className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
-                  aria-label="Account"
-                  title="Account"
-                  onClick={openAccount}
-                >
-                  <User size={22} />
-                </button>
-              ) : null}
 
               <button
                 type="button"
