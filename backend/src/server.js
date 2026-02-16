@@ -11,6 +11,18 @@ import { getMongoStatus } from './db/mongo.js'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+function normalizeOrigin(value) {
+    const raw = String(value ?? '').trim()
+    if (!raw) return ''
+
+    try {
+        const parsed = new URL(raw)
+        return parsed.origin
+    } catch {
+        return raw.replace(/\/+$/, '')
+    }
+}
+
 export function createServer() {
     const app = express()
 
@@ -26,23 +38,24 @@ export function createServer() {
 
                 const env = process.env.CORS_ORIGIN
                 const allowAllLocalhost = process.env.NODE_ENV !== 'production'
+                const requestOrigin = normalizeOrigin(origin)
 
                 const allowedOrigins = (env ? env.split(',') : [])
-                    .map((s) => s.trim())
+                    .map((s) => normalizeOrigin(s))
                     .filter(Boolean)
 
                 const isAllowedByEnv = allowedOrigins.length
-                    ? allowedOrigins.includes(origin)
+                    ? allowedOrigins.includes(requestOrigin)
                     : false
 
                 const isAllowedLocalhost =
                     allowAllLocalhost &&
-                    /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
+                    /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(requestOrigin)
 
                 const isAllowedPrivateLan =
                     allowAllLocalhost &&
                     /^https?:\/\/(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}):\d+$/.test(
-                        origin,
+                        requestOrigin,
                     )
 
                 if (isAllowedByEnv || isAllowedLocalhost || isAllowedPrivateLan) {
