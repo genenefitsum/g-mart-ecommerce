@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
@@ -91,6 +92,15 @@ export default function Checkout() {
     (sellerPayment?.hasTelebirr || sellerPayment?.hasBank) &&
     (paymentMethod === 'telebirr' ? sellerPayment?.hasTelebirr : sellerPayment?.hasBank)
 
+  const onBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+
+    navigate('/')
+  }
+
   const onSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -174,6 +184,13 @@ export default function Checkout() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
+      <div className="mb-4">
+        <Button type="button" variant="outline" onClick={onBack}>
+          <ArrowLeft />
+          Back
+        </Button>
+      </div>
+
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">Checkout</h1>
         <p className="mt-1 text-sm text-gray-500">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -184,9 +185,25 @@ export default function Account({ onRequireAuth }) {
     navigate('/')
   }
 
+  const onBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+
+    navigate('/')
+  }
+
   if (!user) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
+        <div className="mb-4">
+          <Button type="button" variant="outline" onClick={onBack}>
+            <ArrowLeft />
+            Back
+          </Button>
+        </div>
+
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">Account</h1>
           <p className="mt-1 text-sm text-gray-500">Sign in to view your account and orders.</p>
@@ -211,6 +228,13 @@ export default function Account({ onRequireAuth }) {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
+      <div className="mb-4">
+        <Button type="button" variant="outline" onClick={onBack}>
+          <ArrowLeft />
+          Back
+        </Button>
+      </div>
+
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">Account</h1>
