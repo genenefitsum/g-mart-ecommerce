@@ -123,7 +123,10 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
                             </Button>
                         </DialogTrigger>
 
-                        <DialogContent className="max-h-[90dvh] max-w-[560px] overflow-y-auto">
+                        <DialogContent
+                            className="w-[min(94vw,560px)] max-h-[88dvh] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-5 sm:p-6"
+                            overlayClassName="bg-black/40 backdrop-blur-sm"
+                        >
                             <div className="mb-2">
                                 <div className="text-lg font-semibold text-gray-900">Add product</div>
                                 <div className="mt-1 text-sm text-gray-500">
