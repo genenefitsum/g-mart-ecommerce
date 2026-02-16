@@ -21,6 +21,7 @@ function readGuestWishlist() {
         category: p.category ?? "",
         price: Number(p.price ?? 0),
         image: p.image ?? "",
+        canAddToCart: Boolean(p.canAddToCart),
       }))
       .filter((p) => p.id);
   } catch {
@@ -89,6 +90,7 @@ export const WishlistProvider = ({ children, onRequireAuth: _onRequireAuth }) =>
       category: product?.category ?? "",
       price: Number(product?.price ?? 0),
       image: product?.image ?? product?.imageUrl ?? "",
+      canAddToCart: Boolean(product?.canAddToCart),
     };
   };
 

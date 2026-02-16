@@ -36,6 +36,13 @@ const normalizeProduct = (product) => {
             bankAccountNumber: product?.sellerPayment?.bankAccountNumber ?? "",
             bankAccountName: product?.sellerPayment?.bankAccountName ?? "",
         },
+        canAddToCart:
+            typeof product?.canAddToCart === "boolean"
+                ? product.canAddToCart
+                : Boolean(
+                    String(product?.sellerPayment?.telebirrPhone ?? "").trim() ||
+                      String(product?.sellerPayment?.bankAccountNumber ?? "").trim(),
+                  ),
     };
 };
 
@@ -336,6 +343,7 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                                         price: product.price,
                                         image: product.image,
                                         category: product.category,
+                                        canAddToCart: product.canAddToCart,
                                     })
                                 }
                                 className={
@@ -367,7 +375,10 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                                 <Button
                                     type="button"
                                     className="w-full rounded-xl font-montserrat bg-blue-600 hover:bg-blue-700"
+                                    disabled={!product.canAddToCart}
                                     onClick={() =>
+                                        product.canAddToCart
+                                          ?
                                         onAddToCart({
                                             id: product.id,
                                             name: product.name,
@@ -375,16 +386,24 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                                             image: product.image,
                                             category: product.category,
                                             sellerPayment: product.sellerPayment,
+                                            canAddToCart: product.canAddToCart,
                                         })
+                                          : null
                                     }
                                 >
                                     <ShoppingCart />
-                                    Add to cart
+                                    {product.canAddToCart ? 'Add to cart' : 'Wishlist only'}
                                 </Button>
                             </div>
                         </div>
 
                         <div className="p-3 lg:p-3.5">
+                            {product.canAddToCart ? (
+                                <div className="mb-2 inline-flex rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
+                                    Admin product
+                                </div>
+                            ) : null}
+
                             <p className="text-[10px] tracking-wide text-gray-500 font-montserrat uppercase">
                                 {product.category}
                             </p>

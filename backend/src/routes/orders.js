@@ -95,6 +95,19 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
       return res.status(404).json({ ok: false, error: 'One or more products not found' })
     }
 
+    const hasNonCartable = products.some((p) => {
+      const telebirrPhone = String(p?.sellerPayment?.telebirrPhone ?? '').trim()
+      const bankAccountNumber = String(p?.sellerPayment?.bankAccountNumber ?? '').trim()
+      return !telebirrPhone && !bankAccountNumber
+    })
+
+    if (hasNonCartable) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Some products are wishlist-only and cannot be checked out.',
+      })
+    }
+
     const orderItems = parsed.map((it) => {
       const p = byId.get(String(it.productId))
       return {

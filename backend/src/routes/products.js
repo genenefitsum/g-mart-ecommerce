@@ -45,6 +45,20 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 })
 
+function hasCartPaymentInfo(product) {
+  const telebirrPhone = String(product?.sellerPayment?.telebirrPhone ?? '').trim()
+  const bankAccountNumber = String(product?.sellerPayment?.bankAccountNumber ?? '').trim()
+  return Boolean(telebirrPhone || bankAccountNumber)
+}
+
+function serializeProduct(product) {
+  const plain = product && typeof product === 'object' ? product : {}
+  return {
+    ...plain,
+    canAddToCart: hasCartPaymentInfo(plain),
+  }
+}
+
 // GET /api/v1/products?category=...&q=...
 productsRouter.get('/', async (req, res, next) => {
   try {
@@ -71,7 +85,7 @@ productsRouter.get('/', async (req, res, next) => {
       .limit(200)
       .lean()
 
-    return res.json({ ok: true, products })
+    return res.json({ ok: true, products: products.map(serializeProduct) })
   } catch (err) {
     return next(err)
   }
@@ -92,7 +106,7 @@ productsRouter.get('/:productId', async (req, res, next) => {
     const product = await Product.findById(productId).lean()
     if (!product) return res.status(404).json({ ok: false, error: 'Product not found' })
 
-    return res.json({ ok: true, product })
+    return res.json({ ok: true, product: serializeProduct(product) })
   } catch (err) {
     return next(err)
   }
@@ -100,7 +114,7 @@ productsRouter.get('/:productId', async (req, res, next) => {
 
 // POST /api/v1/products (multipart/form-data)
 // fields: name, price, category, description, contactPhone, image(file),
-// optional seller payment fields: telebirrPhone, bankName, bankAccountNumber, bankAccountName
+// optional seller payment fields (admin only): telebirrPhone, bankName, bankAccountNumber, bankAccountName
 productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
@@ -130,14 +144,18 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
       return res.status(400).json({ ok: false, error: 'Image is required' })
     }
 
+    const isAdmin = String(req.auth?.role ?? '').toLowerCase() === 'admin'
+
     const hasTelebirr = Boolean(telebirrPhone)
     const hasBank = Boolean(bankAccountNumber)
-    if (!hasTelebirr && !hasBank) {
-      return res.status(400).json({ ok: false, error: 'Provide Telebirr or bank payment info' })
-    }
+    if (isAdmin) {
+      if (!hasTelebirr && !hasBank) {
+        return res.status(400).json({ ok: false, error: 'Provide Telebirr or bank payment info' })
+      }
 
-    if (hasBank && (!bankName || !bankAccountName)) {
-      return res.status(400).json({ ok: false, error: 'Bank name and account name are required' })
+      if (hasBank && (!bankName || !bankAccountName)) {
+        return res.status(400).json({ ok: false, error: 'Bank name and account name are required' })
+      }
     }
 
     const imagePath = `/uploads/products/${req.file.filename}`
@@ -152,14 +170,14 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
       imageUrl,
       sellerUserId: req.auth?.userId ?? null,
       sellerPayment: {
-        telebirrPhone,
-        bankName,
-        bankAccountNumber,
-        bankAccountName,
+        telebirrPhone: isAdmin ? telebirrPhone : '',
+        bankName: isAdmin ? bankName : '',
+        bankAccountNumber: isAdmin ? bankAccountNumber : '',
+        bankAccountName: isAdmin ? bankAccountName : '',
       },
     })
 
-    return res.status(201).json({ ok: true, product })
+    return res.status(201).json({ ok: true, product: serializeProduct(product.toObject()) })
   } catch (err) {
     return next(err)
   }

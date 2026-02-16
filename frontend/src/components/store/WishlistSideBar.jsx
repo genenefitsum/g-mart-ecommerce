@@ -10,12 +10,17 @@ export default function WishlistSideBar() {
   const { addToCart } = useCart();
 
   const moveToCart = async (item) => {
+    if (!item?.canAddToCart) {
+      return;
+    }
+
     addToCart({
       id: String(item?.id ?? ""),
       name: item?.name ?? "",
       price: Number(item?.price ?? 0),
       image: item?.image ?? "",
       category: item?.category ?? "",
+      canAddToCart: Boolean(item?.canAddToCart),
     });
 
     await removeFromWishlist(item?.id);
@@ -110,10 +115,11 @@ export default function WishlistSideBar() {
                       <button
                         type="button"
                         onClick={() => moveToCart(item)}
+                        disabled={!item?.canAddToCart}
                         className="mt-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-montserrat font-semibold text-gray-900 transition hover:bg-gray-50"
                       >
                         <ShoppingCart size={16} />
-                        Move to cart
+                        {item?.canAddToCart ? 'Move to cart' : 'Wishlist only'}
                       </button>
                     </div>
 
