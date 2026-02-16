@@ -363,44 +363,41 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                                 />
                             </button>
 
-                            {/* Add to cart overlay (mobile always visible, desktop on hover) */}
-                            <div
-                                className={
-                                    "absolute inset-x-3 bottom-3 transition " +
-                                    "opacity-100 translate-y-0 " +
-                                    "md:opacity-0 md:translate-y-2 md:group-hover:opacity-100 md:group-hover:translate-y-0 " +
-                                    "md:pointer-events-none md:group-hover:pointer-events-auto"
-                                }
-                            >
-                                <Button
-                                    type="button"
-                                    className="w-full rounded-xl font-montserrat bg-blue-600 hover:bg-blue-700"
-                                    disabled={!product.canAddToCart}
-                                    onClick={() =>
-                                        product.canAddToCart
-                                          ?
-                                        onAddToCart({
-                                            id: product.id,
-                                            name: product.name,
-                                            price: product.price,
-                                            image: product.image,
-                                            category: product.category,
-                                            sellerPayment: product.sellerPayment,
-                                            canAddToCart: product.canAddToCart,
-                                        })
-                                          : null
+                            {product.canAddToCart ? (
+                                <div
+                                    className={
+                                        "absolute inset-x-3 bottom-3 transition " +
+                                        "opacity-100 translate-y-0 " +
+                                        "md:opacity-0 md:translate-y-2 md:group-hover:opacity-100 md:group-hover:translate-y-0 " +
+                                        "md:pointer-events-none md:group-hover:pointer-events-auto"
                                     }
                                 >
-                                    <ShoppingCart />
-                                    {product.canAddToCart ? 'Add to cart' : 'Wishlist only'}
-                                </Button>
-                            </div>
+                                    <Button
+                                        type="button"
+                                        className="w-full rounded-xl font-montserrat bg-blue-600 hover:bg-blue-700"
+                                        onClick={() =>
+                                            onAddToCart({
+                                                id: product.id,
+                                                name: product.name,
+                                                price: product.price,
+                                                image: product.image,
+                                                category: product.category,
+                                                sellerPayment: product.sellerPayment,
+                                                canAddToCart: product.canAddToCart,
+                                            })
+                                        }
+                                    >
+                                        <ShoppingCart />
+                                        Add to cart
+                                    </Button>
+                                </div>
+                            ) : null}
                         </div>
 
                         <div className="p-3 lg:p-3.5">
-                            {product.canAddToCart ? (
-                                <div className="mb-2 inline-flex rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-                                    Admin product
+                            {!product.canAddToCart ? (
+                                <div className="mb-2 inline-flex rounded-md bg-green-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-green-700">
+                                    Seller
                                 </div>
                             ) : null}
 
