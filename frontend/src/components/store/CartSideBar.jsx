@@ -150,6 +150,7 @@ const startShopping = () => {
                     type="button"
                     className="w-full bg-black text-white py-3 rounded"
                     onClick={() => {
+                        setIsCartOpen(false)
                         if (typeof onCheckout === 'function') onCheckout()
                     }}
                 >
