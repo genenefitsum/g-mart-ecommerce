@@ -47,7 +47,12 @@ const upload = multer({
 })
 
 function hasCartPaymentInfo(product) {
-  return Boolean(product?.isAdminProduct)
+  if (typeof product?.isAdminProduct === 'boolean') {
+    return product.isAdminProduct
+  }
+
+  const ownerId = String(product?.sellerUserId ?? '').trim()
+  return !ownerId
 }
 
 function serializeProduct(product) {

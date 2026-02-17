@@ -8,6 +8,13 @@ import Wishlist from '../models/Wishlist.js'
 
 export const wishlistRouter = Router()
 
+function isAdminProductRecord(product) {
+  if (typeof product?.isAdminProduct === 'boolean') return product.isAdminProduct
+
+  const ownerId = String(product?.sellerUserId ?? '').trim()
+  return !ownerId
+}
+
 function mongoGuard(req, res) {
   const status = getMongoStatus()
   if (!status.enabled) {
@@ -23,7 +30,7 @@ async function loadWishlistProducts(userId) {
   if (!productIds.length) return []
 
   const products = await Product.find({ _id: { $in: productIds } })
-    .select('_id name category price imageUrl isAdminProduct')
+    .select('_id name category price imageUrl isAdminProduct sellerUserId')
     .lean()
 
   const byId = new Map(products.map((p) => [String(p._id), p]))
@@ -36,7 +43,7 @@ async function loadWishlistProducts(userId) {
       category: p.category ?? '',
       price: Number(p.price ?? 0),
       image: p.imageUrl ?? '',
-      canAddToCart: Boolean(p?.isAdminProduct),
+      canAddToCart: isAdminProductRecord(p),
     }))
 }
 

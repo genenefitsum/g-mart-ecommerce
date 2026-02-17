@@ -47,6 +47,13 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 })
 
+function isAdminProductRecord(product) {
+  if (typeof product?.isAdminProduct === 'boolean') return product.isAdminProduct
+
+  const ownerId = String(product?.sellerUserId ?? '').trim()
+  return !ownerId
+}
+
 function getAdminPaymentRecipient() {
   const recipient = {
     telebirrPhone: String(process.env.ADMIN_PAYMENT_TELEBIRR_PHONE ?? '').trim(),
@@ -109,7 +116,7 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
 
     const productObjectIds = parsed.map((it) => new mongoose.Types.ObjectId(it.productId))
     const products = await Product.find({ _id: { $in: productObjectIds } })
-      .select('_id name price imageUrl isAdminProduct')
+      .select('_id name price imageUrl isAdminProduct sellerUserId')
       .lean()
 
     const byId = new Map(products.map((p) => [String(p._id), p]))
@@ -119,7 +126,7 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
       return res.status(404).json({ ok: false, error: 'One or more products not found' })
     }
 
-    const hasNonCartable = products.some((p) => !p?.isAdminProduct)
+    const hasNonCartable = products.some((p) => !isAdminProductRecord(p))
 
     if (hasNonCartable) {
       return res.status(400).json({
