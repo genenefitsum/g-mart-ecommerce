@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { apiAddToWishlist, apiGetWishlist, apiRemoveFromWishlist } from "@/lib/api";
+import { apiAddToWishlist, apiGetWishlist, apiRemoveFromWishlist, resolveAssetUrl } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toErrorMessage } from "@/lib/errors";
 
@@ -20,7 +20,7 @@ function readGuestWishlist() {
         name: p.name ?? "",
         category: p.category ?? "",
         price: Number(p.price ?? 0),
-        image: p.image ?? "",
+        image: resolveAssetUrl(p.image ?? ""),
         canAddToCart: Boolean(p.canAddToCart),
       }))
       .filter((p) => p.id);
@@ -71,7 +71,12 @@ export const WishlistProvider = ({ children, onRequireAuth: _onRequireAuth }) =>
       setError("");
       const data = await apiGetWishlist();
       if (data?.ok && Array.isArray(data.items)) {
-        setItems(data.items);
+        setItems(
+          data.items.map((item) => ({
+            ...item,
+            image: resolveAssetUrl(item?.image ?? item?.imageUrl ?? ""),
+          })),
+        );
       } else {
         setError(toErrorMessage(data?.error, "Failed to load wishlist"));
       }
@@ -89,7 +94,7 @@ export const WishlistProvider = ({ children, onRequireAuth: _onRequireAuth }) =>
       name: product?.name ?? "",
       category: product?.category ?? "",
       price: Number(product?.price ?? 0),
-      image: product?.image ?? product?.imageUrl ?? "",
+      image: resolveAssetUrl(product?.image ?? product?.imageUrl ?? ""),
       canAddToCart: Boolean(product?.canAddToCart),
     };
   };
@@ -144,7 +149,12 @@ export const WishlistProvider = ({ children, onRequireAuth: _onRequireAuth }) =>
     try {
       const data = await apiAddToWishlist(productId);
       if (data?.ok && Array.isArray(data.items)) {
-        setItems(data.items);
+        setItems(
+          data.items.map((item) => ({
+            ...item,
+            image: resolveAssetUrl(item?.image ?? item?.imageUrl ?? ""),
+          })),
+        );
         setError("");
       } else {
         setError(toErrorMessage(data?.error, "Failed to save wishlist"))
@@ -176,7 +186,12 @@ export const WishlistProvider = ({ children, onRequireAuth: _onRequireAuth }) =>
     try {
       const data = await apiRemoveFromWishlist(id);
       if (data?.ok && Array.isArray(data.items)) {
-        setItems(data.items);
+        setItems(
+          data.items.map((item) => ({
+            ...item,
+            image: resolveAssetUrl(item?.image ?? item?.imageUrl ?? ""),
+          })),
+        );
       }
       return { ok: Boolean(data?.ok) };
     } catch {

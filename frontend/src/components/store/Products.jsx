@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { apiListProducts } from "@/lib/api";
+import { apiListProducts, resolveAssetUrl } from "@/lib/api";
 import { toErrorMessage } from "@/lib/errors";
 import { useNavigate } from "react-router-dom";
 
@@ -29,7 +29,7 @@ const normalizeProduct = (product) => {
         reviewCount: typeof product?.reviewCount === "number" ? product.reviewCount : 0,
         featured: Boolean(product?.featured),
         badge: product?.badge ?? undefined,
-        image: product?.imageUrl ?? product?.image ?? "",
+        image: resolveAssetUrl(product?.imageUrl ?? product?.image ?? ""),
         sellerPayment: {
             telebirrPhone: product?.sellerPayment?.telebirrPhone ?? "",
             bankName: product?.sellerPayment?.bankName ?? "",

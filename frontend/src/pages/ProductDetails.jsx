@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ShoppingCart } from 'lucide-react'
 
-import { apiGetProduct } from '@/lib/api'
+import { apiGetProduct, resolveAssetUrl } from '@/lib/api'
 import { useCart } from '@/context/CartContext'
 import { Button } from '@/components/ui/button'
 import { toErrorMessage } from '@/lib/errors'
@@ -25,7 +25,7 @@ function normalizeProduct(product) {
     price: Number(product?.price ?? 0),
     description: product?.description ?? '',
     contactPhone: product?.contactPhone ?? '',
-    image: product?.imageUrl ?? product?.image ?? '',
+    image: resolveAssetUrl(product?.imageUrl ?? product?.image ?? ''),
     sellerPayment: {
       telebirrPhone: product?.sellerPayment?.telebirrPhone ?? '',
       bankName: product?.sellerPayment?.bankName ?? '',

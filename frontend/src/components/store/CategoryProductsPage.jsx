@@ -4,7 +4,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, ShoppingCart, Star } from "lucide-re
 
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
-import { apiListProducts } from "@/lib/api";
+import { apiListProducts, resolveAssetUrl } from "@/lib/api";
 import { toErrorMessage } from "@/lib/errors";
 
 const CATEGORY_ID_TO_NAME = {
@@ -27,7 +27,7 @@ const normalizeProduct = (product) => {
     reviewCount: typeof product?.reviewCount === "number" ? product.reviewCount : 0,
     featured: Boolean(product?.featured),
     badge: product?.badge ?? undefined,
-    image: product?.imageUrl ?? product?.image ?? "",
+    image: resolveAssetUrl(product?.imageUrl ?? product?.image ?? ""),
     sellerPayment: {
       telebirrPhone: product?.sellerPayment?.telebirrPhone ?? "",
       bankName: product?.sellerPayment?.bankName ?? "",

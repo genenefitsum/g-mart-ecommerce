@@ -26,11 +26,33 @@ const baseURL =
     ? 'https://g-mart-ecommerce-1.onrender.com/api/v1'
     : 'http://localhost:4000/api/v1')
 
+const apiOrigin = (() => {
+  try {
+    return new URL(baseURL).origin
+  } catch {
+    if (typeof window !== 'undefined') return window.location.origin
+    return ''
+  }
+})()
+
 export const api = axios.create({
   baseURL,
   withCredentials: true,
   timeout: 10000,
 })
+
+export function resolveAssetUrl(rawUrl) {
+  const value = String(rawUrl ?? '').trim()
+  if (!value) return ''
+
+  if (/^(?:data:|blob:|https?:\/\/)/i.test(value)) return value
+
+  if (value.startsWith('/')) {
+    return apiOrigin ? `${apiOrigin}${value}` : value
+  }
+
+  return value
+}
 
 let refreshInFlight = null
 

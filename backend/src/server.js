@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import fs from 'fs'
 import { apiV1 } from './routes/apiV1.js'
 import { getMongoStatus } from './db/mongo.js'
+import { getUploadsRoot } from './lib/uploads.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -26,8 +27,7 @@ function normalizeOrigin(value) {
 export function createServer() {
     const app = express()
 
-    const uploadsRoot = path.resolve(process.cwd(), 'uploads')
-    fs.mkdirSync(uploadsRoot, { recursive: true })
+    const uploadsRoot = getUploadsRoot()
     app.use('/uploads', express.static(uploadsRoot))
 
     app.use(

@@ -7,6 +7,7 @@ import mongoose from 'mongoose'
 import { getMongoStatus } from '../db/mongo.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import Product from '../models/Product.js'
+import { getUploadsRoot } from '../lib/uploads.js'
 
 export const productsRouter = Router()
 
@@ -19,7 +20,7 @@ function mongoGuard(req, res) {
   return true
 }
 
-const uploadsRoot = path.resolve(process.cwd(), 'uploads')
+const uploadsRoot = getUploadsRoot()
 const productsUploadDir = path.join(uploadsRoot, 'products')
 fs.mkdirSync(productsUploadDir, { recursive: true })
 
@@ -159,7 +160,6 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
     }
 
     const imagePath = `/uploads/products/${req.file.filename}`
-    const imageUrl = `${req.protocol}://${req.get('host')}${imagePath}`
 
     const product = await Product.create({
       name,
@@ -167,7 +167,7 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
       category,
       description,
       contactPhone,
-      imageUrl,
+      imageUrl: imagePath,
       sellerUserId: req.auth?.userId ?? null,
       sellerPayment: {
         telebirrPhone: isAdmin ? telebirrPhone : '',
