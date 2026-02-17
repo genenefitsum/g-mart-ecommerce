@@ -170,8 +170,16 @@ export async function apiUpdateProduct(productId, formData) {
 }
 
 export async function apiDeleteProduct(productId) {
-  const res = await api.delete(`/products/${productId}`)
-  return res.data
+  try {
+    const res = await api.delete(`/products/${productId}`)
+    return res.data
+  } catch (err) {
+    const status = err?.response?.status
+    if (status !== 404) throw err
+
+    const fallback = await api.post(`/products/${productId}/delete`)
+    return fallback.data
+  }
 }
 
 export async function apiGetProduct(productId) {

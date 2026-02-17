@@ -8,6 +8,11 @@ import { getMongoStatus } from '../db/mongo.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import Product from '../models/Product.js'
 import { getUploadsRoot } from '../lib/uploads.js'
+import {
+  deleteCloudinaryImageByUrl,
+  isCloudinaryEnabled,
+  uploadImageBufferToCloudinary,
+} from '../lib/cloudinary.js'
 
 export const productsRouter = Router()
 
@@ -24,22 +29,24 @@ const uploadsRoot = getUploadsRoot()
 const productsUploadDir = path.join(uploadsRoot, 'products')
 fs.mkdirSync(productsUploadDir, { recursive: true })
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, productsUploadDir),
-  filename: (_req, file, cb) => {
-    const safeBase = String(file.originalname || 'image')
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-zA-Z0-9._-]/g, '')
-      .slice(0, 80)
+const storage = isCloudinaryEnabled
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (_req, _file, cb) => cb(null, productsUploadDir),
+      filename: (_req, file, cb) => {
+        const safeBase = String(file.originalname || 'image')
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-zA-Z0-9._-]/g, '')
+          .slice(0, 80)
 
-    const ext = path.extname(safeBase) || ''
-    const base = path.basename(safeBase, ext) || 'image'
-    const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+        const ext = path.extname(safeBase) || ''
+        const base = path.basename(safeBase, ext) || 'image'
+        const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
-    cb(null, `${base}-${stamp}${ext}`)
-  },
-})
+        cb(null, `${base}-${stamp}${ext}`)
+      },
+    })
 
 const upload = multer({
   storage,
@@ -61,6 +68,9 @@ function canManageProduct(product, auth) {
 }
 
 function toImagePath(file) {
+  if (isCloudinaryEnabled) {
+    return ''
+  }
   return `/uploads/products/${file.filename}`
 }
 
@@ -71,6 +81,28 @@ function collectUploadedImagePaths(req) {
 
   const chosen = many.length ? many : single
   return chosen.map(toImagePath)
+}
+
+async function uploadProductImageUrls(req) {
+  const filesByField = req?.files && typeof req.files === 'object' ? req.files : {}
+  const many = Array.isArray(filesByField.images) ? filesByField.images : []
+  const single = Array.isArray(filesByField.image) ? filesByField.image : []
+
+  const chosen = many.length ? many : single
+  if (!chosen.length) return []
+
+  if (!isCloudinaryEnabled) {
+    return chosen.map(toImagePath)
+  }
+
+  const uploads = chosen.map((file) =>
+    uploadImageBufferToCloudinary({
+      buffer: file.buffer,
+      filename: file.originalname,
+    }),
+  )
+
+  return Promise.all(uploads)
 }
 
 function deleteLocalProductImages(imagePaths) {
@@ -88,6 +120,17 @@ function deleteLocalProductImages(imagePaths) {
     const filePath = path.join(productsUploadDir, filename)
     fs.promises.unlink(filePath).catch(() => {})
   }
+}
+
+async function deleteProductImages(imagePaths) {
+  const paths = Array.isArray(imagePaths) ? imagePaths : [imagePaths]
+
+  if (isCloudinaryEnabled) {
+    await Promise.all(paths.map((value) => deleteCloudinaryImageByUrl(value)))
+    return
+  }
+
+  deleteLocalProductImages(paths)
 }
 
 function hasCartPaymentInfo(product) {
@@ -183,7 +226,7 @@ productsRouter.post('/', requireAuth, uploadProductImages, async (req, res, next
       return res.status(400).json({ ok: false, error: 'Invalid price' })
     }
 
-    const imagePaths = collectUploadedImagePaths(req)
+    const imagePaths = await uploadProductImageUrls(req)
     if (!imagePaths.length) {
       return res.status(400).json({ ok: false, error: 'At least one image is required' })
     }
@@ -260,7 +303,7 @@ productsRouter.patch('/:productId', requireAuth, uploadProductImages, async (req
       product.price = price
     }
 
-    const newImagePaths = collectUploadedImagePaths(req)
+    const newImagePaths = await uploadProductImageUrls(req)
     if (newImagePaths.length) {
       const previous = Array.isArray(product.images) && product.images.length
         ? product.images
@@ -269,7 +312,7 @@ productsRouter.patch('/:productId', requireAuth, uploadProductImages, async (req
       product.images = newImagePaths
       product.imageUrl = newImagePaths[0]
 
-      deleteLocalProductImages(previous)
+      await deleteProductImages(previous)
     }
 
     await product.save()
@@ -280,7 +323,7 @@ productsRouter.patch('/:productId', requireAuth, uploadProductImages, async (req
 })
 
 // DELETE /api/v1/products/:productId
-productsRouter.delete('/:productId', requireAuth, async (req, res, next) => {
+async function handleDeleteProduct(req, res, next) {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -301,10 +344,15 @@ productsRouter.delete('/:productId', requireAuth, async (req, res, next) => {
       : [product.imageUrl]
 
     await product.deleteOne()
-    deleteLocalProductImages(toDelete)
+    await deleteProductImages(toDelete)
 
     return res.json({ ok: true, deletedId: String(product._id) })
   } catch (err) {
     return next(err)
   }
-})
+}
+
+productsRouter.delete('/:productId', requireAuth, handleDeleteProduct)
+
+// Compatibility alias for environments that may not pass DELETE correctly.
+productsRouter.post('/:productId/delete', requireAuth, handleDeleteProduct)
