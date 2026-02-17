@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Eye, EyeOff, ShoppingBag } from 'lucide-react'
+import { FcGoogle } from 'react-icons/fc'
 
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -8,13 +9,17 @@ import { Label } from '@/components/ui/label'
 import { toErrorMessage } from '@/lib/errors'
 
 export default function AuthScreen({ onSuccess }) {
-  const { login, register, isLoading, error } = useAuth()
+  const { login, register, googleLogin, isLoading, error } = useAuth()
   const [mode, setMode] = useState('login')
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [googleError, setGoogleError] = useState('')
+
+  const GOOGLE_SCRIPT_URL = 'https://accounts.google.com/gsi/client'
+  const googleClientId = String(import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim()
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -26,6 +31,79 @@ export default function AuthScreen({ onSuccess }) {
 
     if (result?.ok && typeof onSuccess === 'function') {
       onSuccess()
+    }
+  }
+
+  const loadGoogleScript = () =>
+    new Promise((resolve, reject) => {
+      if (window.google?.accounts?.id) {
+        resolve(window.google)
+        return
+      }
+
+      const existing = document.querySelector('script[data-google-gsi="true"]')
+      if (existing) {
+        existing.addEventListener('load', () => resolve(window.google), { once: true })
+        existing.addEventListener('error', () => reject(new Error('Failed to load Google Sign-In')), {
+          once: true,
+        })
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = GOOGLE_SCRIPT_URL
+      script.async = true
+      script.defer = true
+      script.dataset.googleGsi = 'true'
+      script.onload = () => resolve(window.google)
+      script.onerror = () => reject(new Error('Failed to load Google Sign-In'))
+      document.head.appendChild(script)
+    })
+
+  const onGoogleSignIn = async () => {
+    setGoogleError('')
+
+    if (!googleClientId) {
+      setGoogleError('Google sign-in is not configured for this app.')
+      return
+    }
+
+    try {
+      const google = await loadGoogleScript()
+
+      if (!google?.accounts?.id) {
+        setGoogleError('Google sign-in is currently unavailable.')
+        return
+      }
+
+      google.accounts.id.cancel()
+      google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response) => {
+          const credential = String(response?.credential ?? '').trim()
+          if (!credential) {
+            setGoogleError('Google sign-in was cancelled.')
+            return
+          }
+
+          const result = await googleLogin({ credential })
+          if (result?.ok && typeof onSuccess === 'function') {
+            onSuccess()
+            return
+          }
+
+          setGoogleError('Google sign-in failed. Please try again.')
+        },
+        ux_mode: 'popup',
+      })
+
+      google.accounts.id.prompt((notification) => {
+        if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
+          setGoogleError('Google sign-in popup was blocked or unavailable. Please try again.')
+        }
+      })
+    } catch {
+      setGoogleError('Unable to start Google sign-in. Please try again.')
     }
   }
 
@@ -131,6 +209,7 @@ export default function AuthScreen({ onSuccess }) {
           </div>
 
           {error ? <div className="text-sm text-red-600">{toErrorMessage(error, '')}</div> : null}
+          {googleError ? <div className="text-sm text-red-600">{googleError}</div> : null}
 
           <Button type="submit" className="w-full bg-blue-600 text-white hover:bg-blue-700" disabled={isLoading}>
             {isLoading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Sign Up'}
@@ -140,7 +219,14 @@ export default function AuthScreen({ onSuccess }) {
             <div className="text-center text-[11px] uppercase tracking-wide text-gray-400">
               Or continue with
             </div>
-            <Button type="button" variant="outline" className="mt-2 w-full" disabled>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2 w-full"
+              onClick={onGoogleSignIn}
+              disabled={isLoading}
+            >
+              <FcGoogle className="h-4 w-4" />
               Continue with Google
             </Button>
           </div>

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import bcrypt from 'bcrypt'
+import { OAuth2Client } from 'google-auth-library'
 
 import { getMongoStatus } from '../db/mongo.js'
 import User from '../models/User.js'
@@ -18,6 +19,8 @@ import Order from '../models/Order.js'
 import Product from '../models/Product.js'
 
 export const authRouter = Router()
+
+const googleClient = new OAuth2Client()
 
 function mongoGuard(req, res) {
   const status = getMongoStatus()
@@ -74,6 +77,122 @@ async function issueTokens({ user, authIdentity }) {
   const accessToken = signAccessToken({ userId: user._id, role: user.role })
 
   return { accessToken, refreshToken }
+}
+
+async function verifyGoogleCredential(credential) {
+  const googleClientId = String(process.env.GOOGLE_CLIENT_ID ?? '').trim()
+  if (!googleClientId) {
+    const err = new Error('Google sign-in is not configured')
+    err.statusCode = 503
+    throw err
+  }
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: googleClientId,
+  })
+
+  const payload = ticket.getPayload() ?? {}
+  const email = String(payload.email ?? '').trim().toLowerCase()
+  const providerUserId = String(payload.sub ?? '').trim()
+  const emailVerified = Boolean(payload.email_verified)
+
+  if (!providerUserId || !email || !emailVerified) {
+    const err = new Error('Invalid Google account')
+    err.statusCode = 401
+    throw err
+  }
+
+  return {
+    providerUserId,
+    email,
+    emailVerified,
+    displayName: String(payload.name ?? '').trim(),
+    avatarUrl: String(payload.picture ?? '').trim(),
+  }
+}
+
+async function findOrCreateUserForGoogleIdentity(profile) {
+  const { email, providerUserId, displayName, avatarUrl, emailVerified } = profile
+
+  let googleIdentity = await AuthIdentity.findOne({
+    provider: 'google',
+    $or: [{ providerUserId }, { emailLower: email }],
+  })
+
+  let user = null
+  if (googleIdentity) {
+    user = await User.findById(googleIdentity.userId)
+    if (!user) {
+      await AuthIdentity.deleteOne({ _id: googleIdentity._id })
+      googleIdentity = null
+    }
+  }
+
+  if (!user) {
+    const existingIdentity = await AuthIdentity.findOne({ provider: 'local', emailLower: email })
+    if (existingIdentity) {
+      user = await User.findById(existingIdentity.userId)
+    }
+  }
+
+  if (!user) {
+    const existingUser = await User.findOne({ email })
+    if (existingUser) {
+      user = existingUser
+    }
+  }
+
+  if (!user) {
+    const fallbackPasswordHash = await bcrypt.hash(`${providerUserId}:${Date.now()}`, 12)
+    user = await User.create({
+      name: displayName || email.split('@')[0],
+      email,
+      passwordHash: fallbackPasswordHash,
+      role: 'buyer',
+    })
+  }
+
+  if (!googleIdentity) {
+    googleIdentity = await AuthIdentity.create({
+      userId: user._id,
+      provider: 'google',
+      providerUserId,
+      emailLower: email,
+      passwordHash: null,
+      emailVerified,
+      profile: {
+        displayName: displayName || user.name,
+        avatarUrl,
+      },
+      lastLoginAt: new Date(),
+    })
+  } else {
+    await AuthIdentity.updateOne(
+      { _id: googleIdentity._id },
+      {
+        $set: {
+          userId: user._id,
+          providerUserId,
+          emailLower: email,
+          emailVerified,
+          profile: {
+            displayName: displayName || user.name,
+            avatarUrl,
+          },
+          lastLoginAt: new Date(),
+        },
+      },
+    )
+
+    googleIdentity = await AuthIdentity.findById(googleIdentity._id)
+  }
+
+  if (!googleIdentity) {
+    throw new Error('Failed to establish Google identity')
+  }
+
+  return { user, authIdentity: googleIdentity }
 }
 
 // POST /api/v1/auth/register
@@ -177,6 +296,37 @@ authRouter.post('/login', async (req, res, next) => {
       user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
     })
   } catch (err) {
+    return next(err)
+  }
+})
+
+// POST /api/v1/auth/google
+// body: { credential } where credential is Google ID token
+authRouter.post('/google', async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const credential = String(req.body?.credential ?? '').trim()
+    if (!credential) {
+      return res.status(400).json({ ok: false, error: 'Missing Google credential' })
+    }
+
+    const googleProfile = await verifyGoogleCredential(credential)
+    const { user, authIdentity } = await findOrCreateUserForGoogleIdentity(googleProfile)
+
+    const { accessToken, refreshToken } = await issueTokens({ user, authIdentity })
+    setRefreshCookie(res, refreshToken)
+
+    return res.json({
+      ok: true,
+      accessToken,
+      user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
+    })
+  } catch (err) {
+    const statusCode = Number(err?.statusCode)
+    if (Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 600) {
+      return res.status(statusCode).json({ ok: false, error: err.message || 'Google sign-in failed' })
+    }
     return next(err)
   }
 })

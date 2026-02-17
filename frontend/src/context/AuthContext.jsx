@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import {
+  apiGoogleLogin,
   apiLogin,
   apiLogout,
   apiMe,
@@ -134,6 +135,32 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const googleLogin = async ({ credential }) => {
+    setIsLoading(true)
+    try {
+      setError('')
+      const data = await apiGoogleLogin({ credential })
+      if (!data?.ok || !data?.accessToken) {
+        throw new Error(data?.error || 'Google sign-in failed')
+      }
+
+      setAccess(data.accessToken)
+
+      const me = await apiMe()
+      if (!me?.ok) throw new Error('Failed to load user')
+
+      setUser(me.user)
+      persistAuth({ user: me.user, accessToken: data.accessToken })
+      return { ok: true }
+    } catch (err) {
+      clearAuthState()
+      setError(toErrorMessage(err, 'Google sign-in failed'))
+      return { ok: false }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const logout = async () => {
     setIsLoading(true)
     try {
@@ -199,6 +226,7 @@ export function AuthProvider({ children }) {
         error,
         login,
         register,
+        googleLogin,
         logout,
         refreshSession,
       }}

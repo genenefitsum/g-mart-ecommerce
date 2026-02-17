@@ -68,3 +68,17 @@ db.users.updateOne(
 All `admin` endpoints require a valid Bearer token from an admin account.
 
 ---
+
+## 🔑 Google Sign-In Setup
+
+To enable Google sign-in, configure the same Google OAuth Client ID in both backend and frontend.
+
+- Backend env: `GOOGLE_CLIENT_ID`
+- Frontend env: `VITE_GOOGLE_CLIENT_ID`
+
+### Google Console requirements
+
+- Authorized JavaScript origins: add your frontend origin (for example `http://localhost:5173` and your production domain).
+- Authorized redirect URIs are not required for this implementation because it uses Google Identity Services credential flow.
+
+---

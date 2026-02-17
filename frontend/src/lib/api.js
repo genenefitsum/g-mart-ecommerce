@@ -121,6 +121,11 @@ export async function apiRegister({ name, email, password }) {
   return res.data
 }
 
+export async function apiGoogleLogin({ credential }) {
+  const res = await api.post('/auth/google', { credential })
+  return res.data
+}
+
 export async function apiRefresh() {
   const res = await api.post('/auth/refresh')
   return res.data
