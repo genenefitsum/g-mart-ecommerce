@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { cn } from "@/lib/utils";
+import { cn, formatBirr } from "@/lib/utils";
 
 export default function CartSideBar({ onCheckout }) {
 const {
@@ -99,7 +99,7 @@ const startShopping = () => {
                     <div className="flex-1">
                         <h4 className="font-medium">{item.name}</h4>
                         <p className="text-sm text-gray-500">
-                            ${item.price}
+                            {formatBirr(item.price)}
                         </p>
 
                     <div className="flex items-center gap-2 mt-2">
@@ -130,7 +130,7 @@ const startShopping = () => {
                         <Trash2 size={16} />
                     </button>
                     <span className="font-semibold">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        {formatBirr(item.price * item.quantity)}
                     </span>
                     </div>
                 </div>
@@ -144,7 +144,7 @@ const startShopping = () => {
             <div className="border-t p-5 space-y-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
                 <div className="flex justify-between text-lg font-semibold">
                     <span>Subtotal</span>
-                    <span>${totalPrice.toFixed(2)}</span>
+                    <span>{formatBirr(totalPrice)}</span>
                 </div>
                 <button
                     type="button"

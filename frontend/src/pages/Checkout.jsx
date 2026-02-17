@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
 import { apiCreateOrder, apiGetOrderPaymentRecipient, apiUploadOrderPaymentProof } from '@/lib/api'
 import { toErrorMessage } from '@/lib/errors'
+import { formatBirr } from '@/lib/utils'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -237,7 +238,7 @@ export default function Checkout() {
                     </div>
                   </div>
                   <div className="text-sm font-semibold text-gray-900">
-                    {Number(it.price * it.quantity).toFixed(2)}
+                    {formatBirr(it.price * it.quantity)}
                   </div>
                 </div>
               ))
@@ -248,7 +249,7 @@ export default function Checkout() {
           <div className="mt-4 flex items-center justify-between border-t pt-4">
             <div className="text-sm text-gray-500">Subtotal</div>
             <div className="text-base font-semibold text-gray-900">
-              {Number(totalPrice).toFixed(2)}
+              {formatBirr(totalPrice)}
             </div>
           </div>
         </Card>

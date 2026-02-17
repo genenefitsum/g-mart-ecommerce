@@ -15,6 +15,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { apiListProducts, resolveAssetUrl } from "@/lib/api";
 import { toErrorMessage } from "@/lib/errors";
+import { formatBirr } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
 const normalizeProduct = (product) => {
@@ -46,17 +47,7 @@ const fallbackImage = `data:image/svg+xml,${encodeURIComponent(
     </svg>`
 )}`;
 
-const formatPrice = (value) => {
-    try {
-        return new Intl.NumberFormat(undefined, {
-            style: "currency",
-            currency: "USD",
-            maximumFractionDigits: 2,
-        }).format(value);
-    } catch {
-        return `$${value}`;
-    }
-};
+const formatPrice = (value) => formatBirr(value);
 
 const Products = ({ searchQuery = "", refreshKey = 0 }) => {
     const { addToCart } = useCart();

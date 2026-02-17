@@ -6,6 +6,7 @@ import { apiGetProduct, resolveAssetUrl } from '@/lib/api'
 import { useCart } from '@/context/CartContext'
 import { Button } from '@/components/ui/button'
 import { toErrorMessage } from '@/lib/errors'
+import { formatBirr } from '@/lib/utils'
 
 const fallbackImage = `data:image/svg+xml,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
@@ -143,7 +144,7 @@ export default function ProductDetails() {
           </h1>
 
           <div className="mt-3 text-lg font-semibold text-gray-900">
-            {Number(product.price).toFixed(2)}
+            {formatBirr(product.price)}
           </div>
 
           <div className="mt-5">

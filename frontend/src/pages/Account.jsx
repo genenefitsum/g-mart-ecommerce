@@ -9,6 +9,7 @@ import {
   apiListOrders,
   apiUpdateMe,
 } from '@/lib/api'
+import { formatBirr } from '@/lib/utils'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -307,7 +308,7 @@ export default function Account({ onRequireAuth }) {
                       <span className="text-gray-500">Items:</span> {Array.isArray(o.items) ? o.items.length : 0}
                     </div>
                     <div>
-                      <span className="text-gray-500">Total:</span> {Number(o.subtotal ?? 0).toFixed(2)} {o.currency || ''}
+                      <span className="text-gray-500">Total:</span> {formatBirr(o.subtotal ?? 0)}
                     </div>
                     {o.payment?.method ? (
                       <div>

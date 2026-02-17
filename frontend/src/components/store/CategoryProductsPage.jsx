@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import { apiListProducts, resolveAssetUrl } from "@/lib/api";
 import { toErrorMessage } from "@/lib/errors";
+import { formatBirr } from "@/lib/utils";
 
 const CATEGORY_ID_TO_NAME = {
   mens: "Men's",
@@ -44,17 +45,7 @@ const fallbackImage = `data:image/svg+xml,${encodeURIComponent(
     </svg>`,
 )}`;
 
-const formatPrice = (value) => {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 2,
-    }).format(value);
-  } catch {
-    return `$${value}`;
-  }
-};
+const formatPrice = (value) => formatBirr(value);
 
 export default function CategoryProductsPage({ searchQuery = "" }) {
   const { categoryId } = useParams();

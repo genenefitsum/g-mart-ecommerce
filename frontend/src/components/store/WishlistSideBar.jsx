@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { X, Heart, Trash2, ShoppingCart } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
-import { cn } from "@/lib/utils";
+import { cn, formatBirr } from "@/lib/utils";
 import { toErrorMessage } from "@/lib/errors";
 
 export default function WishlistSideBar() {
@@ -107,7 +107,7 @@ export default function WishlistSideBar() {
 
                     <div className="flex-1">
                       <h4 className="font-medium">{item.name}</h4>
-                      <p className="text-sm text-gray-500">${Number(item.price ?? 0)}</p>
+                      <p className="text-sm text-gray-500">{formatBirr(item.price ?? 0)}</p>
                       {item.category ? (
                         <p className="mt-1 text-xs text-gray-400 font-montserrat uppercase">{item.category}</p>
                       ) : null}
