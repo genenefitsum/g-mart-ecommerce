@@ -21,6 +21,14 @@ export async function loginAndGetToken(agent, { email, password }) {
   return { status: res.status, body: res.body }
 }
 
+export async function setUserRoleByEmail(email, role) {
+  const { default: User } = await import('../src/models/User.js')
+  await User.updateOne(
+    { email: String(email ?? '').trim().toLowerCase() },
+    { $set: { role: String(role ?? '').trim().toLowerCase() } },
+  )
+}
+
 export function agent(app) {
   return supertest.agent(app)
 }

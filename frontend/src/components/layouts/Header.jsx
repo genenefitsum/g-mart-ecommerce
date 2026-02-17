@@ -33,6 +33,7 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
   const { setIsCartOpen, totalItems } = useCart();
   const { setIsWishlistOpen, totalItems: totalWishlistItems } = useWishlist();
   const { user } = useAuth();
+  const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -67,6 +68,12 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
       return;
     }
     openAuth();
+  };
+
+  const openAdmin = () => {
+    setIsMobileMenuOpen(false);
+    setIsMobileSearchOpen(false);
+    navigate("/admin");
   };
 
   // Smooth scroll function
@@ -212,7 +219,7 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                   }
                 >
                   <div className="px-4 pt-12 pb-4">
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className={`grid ${isAdmin ? "grid-cols-3" : "grid-cols-2"} gap-2`}>
                       {user ? (
                         <button
                           className={
@@ -238,6 +245,20 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                           Sign in
                         </button>
                       )}
+
+                      {isAdmin ? (
+                        <button
+                          className={
+                            "py-3.5 px-3 rounded-2xl ring-1 ring-black/5 bg-white/60 " +
+                            "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
+                            "flex items-center justify-center gap-2 transition"
+                          }
+                          aria-label="Admin"
+                          onClick={openAdmin}
+                        >
+                          Admin
+                        </button>
+                      ) : null}
 
                       <button
                         className={
@@ -421,14 +442,28 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
               </div>
 
               {user ? (
-                <button
-                  className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
-                  aria-label="Account"
-                  title="Account"
-                  onClick={openAccount}
-                >
-                  <User size={20} />
-                </button>
+                <>
+                  {isAdmin ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center px-2 py-1 rounded border font-light border-gray-200 text-gray-900 font-montserrat text-sm hover:bg-gray-100 transition"
+                      onClick={openAdmin}
+                      aria-label="Admin"
+                      title="Admin"
+                    >
+                      Admin
+                    </button>
+                  ) : null}
+
+                  <button
+                    className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                    aria-label="Account"
+                    title="Account"
+                    onClick={openAccount}
+                  >
+                    <User size={20} />
+                  </button>
+                </>
               ) : (
                 <button
                   type="button"

@@ -226,3 +226,42 @@ export async function apiGetOrder(orderId) {
   const res = await api.get(`/orders/${orderId}`)
   return res.data
 }
+
+export async function apiAdminListUsers({ q, role, limit } = {}) {
+  const params = {}
+  if (q) params.q = q
+  if (role) params.role = role
+  if (limit) params.limit = limit
+
+  const res = await api.get('/admin/users', { params })
+  return res.data
+}
+
+export async function apiAdminUpdateUserRole(userId, role) {
+  const res = await api.patch(`/admin/users/${userId}/role`, { role })
+  return res.data
+}
+
+export async function apiAdminListOrders({ status, limit } = {}) {
+  const params = {}
+  if (status) params.status = status
+  if (limit) params.limit = limit
+
+  const res = await api.get('/admin/orders', { params })
+  return res.data
+}
+
+export async function apiAdminUpdateOrderStatus(orderId, status) {
+  const res = await api.patch(`/admin/orders/${orderId}/status`, { status })
+  return res.data
+}
+
+export async function apiAdminGetSettings() {
+  const res = await api.get('/admin/settings')
+  return res.data
+}
+
+export async function apiAdminUpdateSettings(payload) {
+  const res = await api.patch('/admin/settings', payload)
+  return res.data
+}

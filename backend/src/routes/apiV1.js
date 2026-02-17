@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { adminRouter } from './admin.js'
 import { authRouter } from './auth.js'
 import { ordersRouter } from './orders.js'
 import { productsRouter } from './products.js'
@@ -11,6 +12,7 @@ apiV1.get('/', (_req, res) => {
 })
 
 apiV1.use('/auth', authRouter)
+apiV1.use('/admin', adminRouter)
 apiV1.use('/orders', ordersRouter)
 apiV1.use('/products', productsRouter)
 apiV1.use('/wishlist', wishlistRouter)

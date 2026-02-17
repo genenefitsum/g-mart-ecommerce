@@ -241,9 +241,17 @@ export default function Account({ onRequireAuth }) {
           <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">Account</h1>
           <p className="mt-1 text-sm text-gray-500">Manage your profile and view your orders.</p>
         </div>
-        <Button type="button" variant="outline" onClick={onSignOut}>
-          Sign out
-        </Button>
+        <div className="flex items-center gap-2">
+          {user?.role === 'admin' ? (
+            <Button type="button" variant="outline" onClick={() => navigate('/admin')}>
+              Admin
+            </Button>
+          ) : null}
+
+          <Button type="button" variant="outline" onClick={onSignOut}>
+            Sign out
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-5">

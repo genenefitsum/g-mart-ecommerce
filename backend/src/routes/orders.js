@@ -8,6 +8,7 @@ import { getMongoStatus } from '../db/mongo.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import Product from '../models/Product.js'
 import Order from '../models/Order.js'
+import SiteSettings from '../models/SiteSettings.js'
 import { getUploadsRoot } from '../lib/uploads.js'
 
 export const ordersRouter = Router()
@@ -54,19 +55,42 @@ function isAdminProductRecord(product) {
   return !ownerId
 }
 
-function getAdminPaymentRecipient() {
-  const recipient = {
+function recipientShape(recipient) {
+  return {
+    telebirrPhone: String(recipient?.telebirrPhone ?? '').trim(),
+    bankName: String(recipient?.bankName ?? '').trim(),
+    bankAccountNumber: String(recipient?.bankAccountNumber ?? '').trim(),
+    bankAccountName: String(recipient?.bankAccountName ?? '').trim(),
+  }
+}
+
+function withRecipientFlags(recipient) {
+  const normalized = recipientShape(recipient)
+  return {
+    ...normalized,
+    hasTelebirr: Boolean(normalized.telebirrPhone),
+    hasBank: Boolean(normalized.bankAccountNumber),
+  }
+}
+
+function getAdminPaymentRecipientFromEnv() {
+  return withRecipientFlags({
     telebirrPhone: String(process.env.ADMIN_PAYMENT_TELEBIRR_PHONE ?? '').trim(),
     bankName: String(process.env.ADMIN_PAYMENT_BANK_NAME ?? '').trim(),
     bankAccountNumber: String(process.env.ADMIN_PAYMENT_BANK_ACCOUNT_NUMBER ?? '').trim(),
     bankAccountName: String(process.env.ADMIN_PAYMENT_BANK_ACCOUNT_NAME ?? '').trim(),
+  })
+}
+
+async function getAdminPaymentRecipient() {
+  const settings = await SiteSettings.findOne({ key: 'main' }).select('paymentRecipient').lean()
+  const fromSettings = withRecipientFlags(settings?.paymentRecipient)
+
+  if (fromSettings.hasTelebirr || fromSettings.hasBank) {
+    return fromSettings
   }
 
-  return {
-    ...recipient,
-    hasTelebirr: Boolean(recipient.telebirrPhone),
-    hasBank: Boolean(recipient.bankAccountNumber),
-  }
+  return getAdminPaymentRecipientFromEnv()
 }
 
 function normalizeQuantity(value) {
@@ -78,11 +102,15 @@ function normalizeQuantity(value) {
 }
 
 // GET /api/v1/orders/payment-recipient
-ordersRouter.get('/payment-recipient', requireAuth, (req, res) => {
-  if (!mongoGuard(req, res)) return
+ordersRouter.get('/payment-recipient', requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
 
-  const recipient = getAdminPaymentRecipient()
-  return res.json({ ok: true, recipient })
+    const recipient = await getAdminPaymentRecipient()
+    return res.json({ ok: true, recipient })
+  } catch (err) {
+    return next(err)
+  }
 })
 
 // POST /api/v1/orders
@@ -146,7 +174,7 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
       }
     })
 
-    const recipient = getAdminPaymentRecipient()
+    const recipient = await getAdminPaymentRecipient()
     const hasTelebirr = recipient.hasTelebirr
     const hasBank = recipient.hasBank
     if (!hasTelebirr && !hasBank) {

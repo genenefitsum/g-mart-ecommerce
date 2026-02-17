@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ShoppingBag } from 'lucide-react'
+import { Eye, EyeOff, ShoppingBag } from 'lucide-react'
 
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,7 @@ export default function AuthScreen({ onSuccess }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -105,16 +106,28 @@ export default function AuthScreen({ onSuccess }) {
 
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              required
-              minLength={8}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === 'login' ? 'Enter your password' : 'Create a password'}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                required
+                minLength={8}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute right-0 top-0 inline-flex h-9 w-9 items-center justify-center text-gray-500 transition hover:text-gray-700"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           {error ? <div className="text-sm text-red-600">{toErrorMessage(error, '')}</div> : null}

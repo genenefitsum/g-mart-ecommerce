@@ -1,6 +1,6 @@
 // import './App.css';
 import { useEffect, useState } from 'react'
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/layouts/Header.jsx'
 import HeroSection from './components/store/Hero.jsx'
 import CategoriesSection from './components/store/Categories.jsx'
@@ -15,6 +15,7 @@ import CategoryProductsPage from './components/store/CategoryProductsPage.jsx'
 import Checkout from './pages/Checkout.jsx'
 import ProductDetails from './pages/ProductDetails.jsx'
 import Account from './pages/Account.jsx'
+import Admin from './pages/Admin.jsx'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 
@@ -116,6 +117,16 @@ function App() {
           <Route
             path="/account"
             element={<Account onRequireAuth={() => setShowAuth(true)} />}
+          />
+          <Route
+            path="/admin"
+            element={
+              user?.role === 'admin' ? (
+                <Admin />
+              ) : (
+                <Navigate to="/account" replace />
+              )
+            }
           />
         </Routes>
 
