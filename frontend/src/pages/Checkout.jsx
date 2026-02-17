@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
-import { apiCreateOrder, apiUploadOrderPaymentProof } from '@/lib/api'
+import { apiCreateOrder, apiGetOrderPaymentRecipient, apiUploadOrderPaymentProof } from '@/lib/api'
 import { toErrorMessage } from '@/lib/errors'
 
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,8 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('telebirr')
   const [transactionRef, setTransactionRef] = useState('')
   const [proofFile, setProofFile] = useState(null)
+  const [recipient, setRecipient] = useState(null)
+  const [recipientError, setRecipientError] = useState('')
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -37,60 +39,44 @@ export default function Checkout() {
       .map((it) => ({ productId: String(it.id), quantity: Number(it.quantity) }))
   }, [items])
 
-  const sellerPayment = useMemo(() => {
-    const list = Array.isArray(items) ? items : []
-    if (!list.length) return null
+  useEffect(() => {
+    let cancelled = false
 
-    const first = list[0]?.sellerPayment ?? null
-    if (!first) return null
+    ;(async () => {
+      if (!user) {
+        setRecipient(null)
+        setRecipientError('')
+        return
+      }
 
-    const firstKey = JSON.stringify({
-      telebirrPhone: first?.telebirrPhone ?? '',
-      bankName: first?.bankName ?? '',
-      bankAccountNumber: first?.bankAccountNumber ?? '',
-      bankAccountName: first?.bankAccountName ?? '',
-    })
+      try {
+        setRecipientError('')
+        const data = await apiGetOrderPaymentRecipient()
+        if (!data?.ok) throw new Error(data?.error || 'Failed to load payment recipient')
+        if (!cancelled) setRecipient(data.recipient ?? null)
+      } catch (err) {
+        if (!cancelled) {
+          setRecipient(null)
+          setRecipientError(toErrorMessage(err, 'Failed to load admin payment info'))
+        }
+      }
+    })()
 
-    const mixed = list.some((it) => {
-      const sp = it?.sellerPayment ?? {}
-      const key = JSON.stringify({
-        telebirrPhone: sp?.telebirrPhone ?? '',
-        bankName: sp?.bankName ?? '',
-        bankAccountNumber: sp?.bankAccountNumber ?? '',
-        bankAccountName: sp?.bankAccountName ?? '',
-      })
-      return key !== firstKey
-    })
-
-    if (mixed) return { mixed: true }
-
-    const normalized = {
-      telebirrPhone: first?.telebirrPhone ?? '',
-      bankName: first?.bankName ?? '',
-      bankAccountNumber: first?.bankAccountNumber ?? '',
-      bankAccountName: first?.bankAccountName ?? '',
+    return () => {
+      cancelled = true
     }
+  }, [user])
 
-    const hasTelebirr = Boolean(String(normalized.telebirrPhone).trim())
-    const hasBank = Boolean(String(normalized.bankAccountNumber).trim())
-
-    return {
-      mixed: false,
-      hasTelebirr,
-      hasBank,
-      ...normalized,
-    }
-  }, [items])
+  const methodAvailable = paymentMethod === 'telebirr' ? recipient?.hasTelebirr : recipient?.hasBank
 
   const canSubmit =
     Boolean(user) &&
     cartPayloadItems.length > 0 &&
     !isSubmitting &&
     Boolean(proofFile) &&
-    Boolean(sellerPayment) &&
-    sellerPayment?.mixed === false &&
-    (sellerPayment?.hasTelebirr || sellerPayment?.hasBank) &&
-    (paymentMethod === 'telebirr' ? sellerPayment?.hasTelebirr : sellerPayment?.hasBank)
+    Boolean(recipient) &&
+    (recipient?.hasTelebirr || recipient?.hasBank) &&
+    Boolean(methodAvailable)
 
   const onBack = () => {
     if (window.history.length > 1) {
@@ -121,18 +107,18 @@ export default function Checkout() {
       return
     }
 
-    if (!sellerPayment || sellerPayment?.mixed) {
-      setError('Please checkout items from one seller at a time.')
+    if (!recipient) {
+      setError('Admin payment info is not available yet.')
       return
     }
 
-    if (paymentMethod === 'telebirr' && !sellerPayment?.hasTelebirr) {
-      setError('Seller has no Telebirr payment info. Choose bank transfer.')
+    if (paymentMethod === 'telebirr' && !recipient?.hasTelebirr) {
+      setError('Admin has no Telebirr payment info. Choose bank transfer.')
       return
     }
 
-    if (paymentMethod === 'bank' && !sellerPayment?.hasBank) {
-      setError('Seller has no bank payment info. Choose Telebirr.')
+    if (paymentMethod === 'bank' && !recipient?.hasBank) {
+      setError('Admin has no bank payment info. Choose Telebirr.')
       return
     }
 
@@ -202,36 +188,32 @@ export default function Checkout() {
         <Card className="rounded-2xl border border-gray-200 p-5">
           <div className="text-base font-semibold text-gray-900">Pay To</div>
 
-          {sellerPayment?.mixed ? (
-            <div className="mt-2 text-sm text-red-600">
-              Your cart contains items from different sellers. Please checkout one seller at a time.
-            </div>
-          ) : null}
+          {recipientError ? <div className="mt-2 text-sm text-red-600">{recipientError}</div> : null}
 
-          {!sellerPayment ? (
-            <div className="mt-2 text-sm text-gray-600">Add items to cart to see payment details.</div>
-          ) : sellerPayment?.mixed ? null : (
+          {!recipient ? (
+            <div className="mt-2 text-sm text-gray-600">Sign in to load admin payment details.</div>
+          ) : (
             <div className="mt-3 grid gap-3 text-sm">
               {paymentMethod === 'telebirr' ? (
-                sellerPayment.hasTelebirr ? (
+                recipient.hasTelebirr ? (
                   <div className="rounded-xl border border-gray-200 p-4">
                     <div className="text-xs uppercase tracking-wide text-gray-500">Telebirr</div>
-                    <div className="mt-1 font-semibold text-gray-900">{sellerPayment.telebirrPhone}</div>
+                    <div className="mt-1 font-semibold text-gray-900">{recipient.telebirrPhone}</div>
                     <div className="mt-1 text-xs text-gray-500">Pay to this number, then upload the screenshot below.</div>
                   </div>
                 ) : (
-                  <div className="text-sm text-red-600">Seller has no Telebirr info.</div>
+                  <div className="text-sm text-red-600">Admin has no Telebirr info.</div>
                 )
-              ) : sellerPayment.hasBank ? (
+              ) : recipient.hasBank ? (
                 <div className="rounded-xl border border-gray-200 p-4">
                   <div className="text-xs uppercase tracking-wide text-gray-500">Bank transfer</div>
-                  <div className="mt-1 font-semibold text-gray-900">{sellerPayment.bankName}</div>
-                  <div className="mt-1 text-gray-800">Account: {sellerPayment.bankAccountNumber}</div>
-                  <div className="mt-1 text-gray-800">Name: {sellerPayment.bankAccountName}</div>
+                  <div className="mt-1 font-semibold text-gray-900">{recipient.bankName}</div>
+                  <div className="mt-1 text-gray-800">Account: {recipient.bankAccountNumber}</div>
+                  <div className="mt-1 text-gray-800">Name: {recipient.bankAccountName}</div>
                   <div className="mt-1 text-xs text-gray-500">Transfer to this account, then upload the screenshot below.</div>
                 </div>
               ) : (
-                <div className="text-sm text-red-600">Seller has no bank info.</div>
+                <div className="text-sm text-red-600">Admin has no bank info.</div>
               )}
             </div>
           )}

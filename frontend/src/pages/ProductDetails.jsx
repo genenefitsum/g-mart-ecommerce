@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ShoppingCart } from 'lucide-react'
 
@@ -26,19 +26,10 @@ function normalizeProduct(product) {
     description: product?.description ?? '',
     contactPhone: product?.contactPhone ?? '',
     image: resolveAssetUrl(product?.imageUrl ?? product?.image ?? ''),
-    sellerPayment: {
-      telebirrPhone: product?.sellerPayment?.telebirrPhone ?? '',
-      bankName: product?.sellerPayment?.bankName ?? '',
-      bankAccountNumber: product?.sellerPayment?.bankAccountNumber ?? '',
-      bankAccountName: product?.sellerPayment?.bankAccountName ?? '',
-    },
     canAddToCart:
       typeof product?.canAddToCart === 'boolean'
         ? product.canAddToCart
-        : Boolean(
-            String(product?.sellerPayment?.telebirrPhone ?? '').trim() ||
-              String(product?.sellerPayment?.bankAccountNumber ?? '').trim(),
-          ),
+        : Boolean(product?.isAdminProduct),
   }
 }
 
@@ -74,14 +65,6 @@ export default function ProductDetails() {
       cancelled = true
     }
   }, [productId])
-
-  const paymentSummary = useMemo(() => {
-    const sp = product?.sellerPayment
-    if (!sp) return { hasTelebirr: false, hasBank: false }
-    const hasTelebirr = Boolean(String(sp.telebirrPhone ?? '').trim())
-    const hasBank = Boolean(String(sp.bankAccountNumber ?? '').trim())
-    return { hasTelebirr, hasBank }
-  }, [product])
 
   if (isLoading) {
     return (
@@ -124,7 +107,6 @@ export default function ProductDetails() {
               price: product.price,
               image: product.image,
               category: product.category,
-              sellerPayment: product.sellerPayment,
               canAddToCart: product.canAddToCart,
             })
               : null
@@ -176,35 +158,6 @@ export default function ProductDetails() {
             <div className="text-sm text-gray-700">
               Phone: <span className="font-semibold">{product.contactPhone || '—'}</span>
             </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 rounded-xl border border-gray-200 p-4">
-            <div className="text-sm font-semibold text-gray-900">Seller payment info</div>
-            <div className="text-xs text-gray-500">
-              This is used at checkout. (Demo / user-provided info)
-            </div>
-
-            {paymentSummary.hasTelebirr ? (
-              <div className="text-sm text-gray-700">
-                Telebirr: <span className="font-semibold">{product.sellerPayment.telebirrPhone}</span>
-              </div>
-            ) : null}
-
-            {paymentSummary.hasBank ? (
-              <div className="text-sm text-gray-700">
-                Bank: <span className="font-semibold">{product.sellerPayment.bankName || '—'}</span>
-                <div className="mt-1 text-sm text-gray-700">
-                  Account: <span className="font-semibold">{product.sellerPayment.bankAccountNumber}</span>
-                </div>
-                <div className="mt-1 text-sm text-gray-700">
-                  Name: <span className="font-semibold">{product.sellerPayment.bankAccountName || '—'}</span>
-                </div>
-              </div>
-            ) : null}
-
-            {!paymentSummary.hasTelebirr && !paymentSummary.hasBank ? (
-              <div className="text-sm text-gray-600">No payment info provided.</div>
-            ) : null}
           </div>
         </div>
       </div>

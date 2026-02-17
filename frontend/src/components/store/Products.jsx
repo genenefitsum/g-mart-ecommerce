@@ -30,19 +30,10 @@ const normalizeProduct = (product) => {
         featured: Boolean(product?.featured),
         badge: product?.badge ?? undefined,
         image: resolveAssetUrl(product?.imageUrl ?? product?.image ?? ""),
-        sellerPayment: {
-            telebirrPhone: product?.sellerPayment?.telebirrPhone ?? "",
-            bankName: product?.sellerPayment?.bankName ?? "",
-            bankAccountNumber: product?.sellerPayment?.bankAccountNumber ?? "",
-            bankAccountName: product?.sellerPayment?.bankAccountName ?? "",
-        },
         canAddToCart:
             typeof product?.canAddToCart === "boolean"
                 ? product.canAddToCart
-                : Boolean(
-                    String(product?.sellerPayment?.telebirrPhone ?? "").trim() ||
-                      String(product?.sellerPayment?.bankAccountNumber ?? "").trim(),
-                  ),
+                : Boolean(product?.isAdminProduct),
     };
 };
 
@@ -382,7 +373,6 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                                                 price: product.price,
                                                 image: product.image,
                                                 category: product.category,
-                                                sellerPayment: product.sellerPayment,
                                                 canAddToCart: product.canAddToCart,
                                             })
                                         }

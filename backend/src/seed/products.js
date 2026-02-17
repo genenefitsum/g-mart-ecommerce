@@ -379,9 +379,10 @@ async function main() {
   }
 
   const inserted = await Product.insertMany(
-    SAMPLE_PRODUCTS.map((p) => ({
+    SAMPLE_PRODUCTS.map(({ sellerPayment: _sellerPayment, ...p }) => ({
       ...p,
       sellerUserId: null,
+      isAdminProduct: true,
     })),
   )
 

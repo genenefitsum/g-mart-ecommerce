@@ -8,6 +8,7 @@ import { getMongoStatus } from '../db/mongo.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import Product from '../models/Product.js'
 import Order from '../models/Order.js'
+import { getUploadsRoot } from '../lib/uploads.js'
 
 export const ordersRouter = Router()
 
@@ -20,7 +21,7 @@ function mongoGuard(_req, res) {
   return true
 }
 
-const uploadsRoot = path.resolve(process.cwd(), 'uploads')
+const uploadsRoot = getUploadsRoot()
 const paymentProofDir = path.join(uploadsRoot, 'order-payments')
 fs.mkdirSync(paymentProofDir, { recursive: true })
 
@@ -46,6 +47,21 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 })
 
+function getAdminPaymentRecipient() {
+  const recipient = {
+    telebirrPhone: String(process.env.ADMIN_PAYMENT_TELEBIRR_PHONE ?? '').trim(),
+    bankName: String(process.env.ADMIN_PAYMENT_BANK_NAME ?? '').trim(),
+    bankAccountNumber: String(process.env.ADMIN_PAYMENT_BANK_ACCOUNT_NUMBER ?? '').trim(),
+    bankAccountName: String(process.env.ADMIN_PAYMENT_BANK_ACCOUNT_NAME ?? '').trim(),
+  }
+
+  return {
+    ...recipient,
+    hasTelebirr: Boolean(recipient.telebirrPhone),
+    hasBank: Boolean(recipient.bankAccountNumber),
+  }
+}
+
 function normalizeQuantity(value) {
   const n = Number(value)
   if (!Number.isFinite(n)) return null
@@ -53,6 +69,14 @@ function normalizeQuantity(value) {
   if (rounded < 1) return null
   return rounded
 }
+
+// GET /api/v1/orders/payment-recipient
+ordersRouter.get('/payment-recipient', requireAuth, (req, res) => {
+  if (!mongoGuard(req, res)) return
+
+  const recipient = getAdminPaymentRecipient()
+  return res.json({ ok: true, recipient })
+})
 
 // POST /api/v1/orders
 // body: { items: [{ productId, quantity }], shipping?: {...}, payment: { method, transactionRef? } }
@@ -85,7 +109,7 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
 
     const productObjectIds = parsed.map((it) => new mongoose.Types.ObjectId(it.productId))
     const products = await Product.find({ _id: { $in: productObjectIds } })
-      .select('_id name price imageUrl sellerPayment')
+      .select('_id name price imageUrl isAdminProduct')
       .lean()
 
     const byId = new Map(products.map((p) => [String(p._id), p]))
@@ -95,16 +119,12 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
       return res.status(404).json({ ok: false, error: 'One or more products not found' })
     }
 
-    const hasNonCartable = products.some((p) => {
-      const telebirrPhone = String(p?.sellerPayment?.telebirrPhone ?? '').trim()
-      const bankAccountNumber = String(p?.sellerPayment?.bankAccountNumber ?? '').trim()
-      return !telebirrPhone && !bankAccountNumber
-    })
+    const hasNonCartable = products.some((p) => !p?.isAdminProduct)
 
     if (hasNonCartable) {
       return res.status(400).json({
         ok: false,
-        error: 'Some products are wishlist-only and cannot be checked out.',
+        error: 'Only admin products can be checked out. Seller products are marketplace-only.',
       })
     }
 
@@ -119,36 +139,11 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
       }
     })
 
-    const recipientBase = {
-      telebirrPhone: String(products?.[0]?.sellerPayment?.telebirrPhone ?? '').trim(),
-      bankName: String(products?.[0]?.sellerPayment?.bankName ?? '').trim(),
-      bankAccountNumber: String(products?.[0]?.sellerPayment?.bankAccountNumber ?? '').trim(),
-      bankAccountName: String(products?.[0]?.sellerPayment?.bankAccountName ?? '').trim(),
-    }
-
-    const recipientKey = JSON.stringify(recipientBase)
-    const mixedRecipient = products.some((p) => {
-      const sp = p?.sellerPayment ?? {}
-      const key = JSON.stringify({
-        telebirrPhone: String(sp?.telebirrPhone ?? '').trim(),
-        bankName: String(sp?.bankName ?? '').trim(),
-        bankAccountNumber: String(sp?.bankAccountNumber ?? '').trim(),
-        bankAccountName: String(sp?.bankAccountName ?? '').trim(),
-      })
-      return key !== recipientKey
-    })
-
-    if (mixedRecipient) {
-      return res.status(400).json({
-        ok: false,
-        error: 'Multiple sellers in one order is not supported yet. Checkout separately.',
-      })
-    }
-
-    const hasTelebirr = Boolean(recipientBase.telebirrPhone)
-    const hasBank = Boolean(recipientBase.bankAccountNumber)
+    const recipient = getAdminPaymentRecipient()
+    const hasTelebirr = recipient.hasTelebirr
+    const hasBank = recipient.hasBank
     if (!hasTelebirr && !hasBank) {
-      return res.status(400).json({ ok: false, error: 'Seller payment info is missing' })
+      return res.status(400).json({ ok: false, error: 'Admin payment info is missing' })
     }
 
     const subtotal = orderItems.reduce((sum, it) => sum + it.unitPrice * it.quantity, 0)
@@ -180,7 +175,12 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
         method,
         transactionRef,
       },
-      recipient: recipientBase,
+      recipient: {
+        telebirrPhone: recipient.telebirrPhone,
+        bankName: recipient.bankName,
+        bankAccountNumber: recipient.bankAccountNumber,
+        bankAccountName: recipient.bankAccountName,
+      },
       status: 'pending_payment',
     })
 
@@ -248,8 +248,7 @@ ordersRouter.post(
         return res.status(400).json({ ok: false, error: 'Proof image is required' })
       }
 
-      const proofPath = `/uploads/order-payments/${req.file.filename}`
-      const proofUrl = `${req.protocol}://${req.get('host')}${proofPath}`
+      const proofUrl = `/uploads/order-payments/${req.file.filename}`
 
       order.payment = {
         ...(order.payment?.toObject?.() ?? order.payment ?? {}),

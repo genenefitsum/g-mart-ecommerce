@@ -28,19 +28,10 @@ const normalizeProduct = (product) => {
     featured: Boolean(product?.featured),
     badge: product?.badge ?? undefined,
     image: resolveAssetUrl(product?.imageUrl ?? product?.image ?? ""),
-    sellerPayment: {
-      telebirrPhone: product?.sellerPayment?.telebirrPhone ?? "",
-      bankName: product?.sellerPayment?.bankName ?? "",
-      bankAccountNumber: product?.sellerPayment?.bankAccountNumber ?? "",
-      bankAccountName: product?.sellerPayment?.bankAccountName ?? "",
-    },
     canAddToCart:
       typeof product?.canAddToCart === "boolean"
         ? product.canAddToCart
-        : Boolean(
-            String(product?.sellerPayment?.telebirrPhone ?? "").trim() ||
-              String(product?.sellerPayment?.bankAccountNumber ?? "").trim(),
-          ),
+        : Boolean(product?.isAdminProduct),
   };
 };
 
@@ -234,7 +225,6 @@ function ProductsGrid({ products, onAddToCart }) {
                       price: product.price,
                       image: product.image,
                       category: product.category,
-                      sellerPayment: product.sellerPayment,
                       canAddToCart: product.canAddToCart,
                     })
                       : null

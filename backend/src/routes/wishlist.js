@@ -23,7 +23,7 @@ async function loadWishlistProducts(userId) {
   if (!productIds.length) return []
 
   const products = await Product.find({ _id: { $in: productIds } })
-    .select('_id name category price imageUrl sellerPayment')
+    .select('_id name category price imageUrl isAdminProduct')
     .lean()
 
   const byId = new Map(products.map((p) => [String(p._id), p]))
@@ -36,10 +36,7 @@ async function loadWishlistProducts(userId) {
       category: p.category ?? '',
       price: Number(p.price ?? 0),
       image: p.imageUrl ?? '',
-      canAddToCart: Boolean(
-        String(p?.sellerPayment?.telebirrPhone ?? '').trim() ||
-          String(p?.sellerPayment?.bankAccountNumber ?? '').trim(),
-      ),
+      canAddToCart: Boolean(p?.isAdminProduct),
     }))
 }
 

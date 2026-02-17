@@ -47,9 +47,7 @@ const upload = multer({
 })
 
 function hasCartPaymentInfo(product) {
-  const telebirrPhone = String(product?.sellerPayment?.telebirrPhone ?? '').trim()
-  const bankAccountNumber = String(product?.sellerPayment?.bankAccountNumber ?? '').trim()
-  return Boolean(telebirrPhone || bankAccountNumber)
+  return Boolean(product?.isAdminProduct)
 }
 
 function serializeProduct(product) {
@@ -114,8 +112,7 @@ productsRouter.get('/:productId', async (req, res, next) => {
 })
 
 // POST /api/v1/products (multipart/form-data)
-// fields: name, price, category, description, contactPhone, image(file),
-// optional seller payment fields (admin only): telebirrPhone, bankName, bankAccountNumber, bankAccountName
+// fields: name, price, category, description, contactPhone, image(file)
 productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
@@ -124,11 +121,6 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
     const category = String(req.body?.category ?? '').trim()
     const description = String(req.body?.description ?? '').trim()
     const contactPhone = String(req.body?.contactPhone ?? '').trim()
-
-    const telebirrPhone = String(req.body?.telebirrPhone ?? '').trim()
-    const bankName = String(req.body?.bankName ?? '').trim()
-    const bankAccountNumber = String(req.body?.bankAccountNumber ?? '').trim()
-    const bankAccountName = String(req.body?.bankAccountName ?? '').trim()
 
     const rawPrice = req.body?.price
     const price = Number(rawPrice)
@@ -147,18 +139,6 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
 
     const isAdmin = String(req.auth?.role ?? '').toLowerCase() === 'admin'
 
-    const hasTelebirr = Boolean(telebirrPhone)
-    const hasBank = Boolean(bankAccountNumber)
-    if (isAdmin) {
-      if (!hasTelebirr && !hasBank) {
-        return res.status(400).json({ ok: false, error: 'Provide Telebirr or bank payment info' })
-      }
-
-      if (hasBank && (!bankName || !bankAccountName)) {
-        return res.status(400).json({ ok: false, error: 'Bank name and account name are required' })
-      }
-    }
-
     const imagePath = `/uploads/products/${req.file.filename}`
 
     const product = await Product.create({
@@ -169,12 +149,7 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
       contactPhone,
       imageUrl: imagePath,
       sellerUserId: req.auth?.userId ?? null,
-      sellerPayment: {
-        telebirrPhone: isAdmin ? telebirrPhone : '',
-        bankName: isAdmin ? bankName : '',
-        bankAccountNumber: isAdmin ? bankAccountNumber : '',
-        bankAccountName: isAdmin ? bankAccountName : '',
-      },
+      isAdminProduct: isAdmin,
     })
 
     return res.status(201).json({ ok: true, product: serializeProduct(product.toObject()) })

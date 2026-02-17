@@ -189,6 +189,11 @@ export async function apiCreateOrder(payload) {
   return res.data
 }
 
+export async function apiGetOrderPaymentRecipient() {
+  const res = await api.get('/orders/payment-recipient')
+  return res.data
+}
+
 export async function apiUploadOrderPaymentProof(orderId, formData) {
   const res = await api.post(`/orders/${orderId}/payment-proof`, formData)
   return res.data
