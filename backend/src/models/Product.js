@@ -43,6 +43,16 @@ const productSchema = new Schema(
 			trim: true,
 			maxlength: 2048,
 		},
+		images: {
+			type: [
+				{
+					type: String,
+					trim: true,
+					maxlength: 2048,
+				},
+			],
+			default: [],
+		},
 		sellerUserId: {
 			type: Schema.Types.ObjectId,
 			ref: 'User',

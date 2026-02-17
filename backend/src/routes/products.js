@@ -46,6 +46,50 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 })
 
+const uploadProductImages = upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'images', maxCount: 8 },
+])
+
+function canManageProduct(product, auth) {
+  const role = String(auth?.role ?? '').toLowerCase()
+  if (role === 'admin') return true
+
+  const ownerId = String(product?.sellerUserId ?? '').trim()
+  const userId = String(auth?.userId ?? '').trim()
+  return Boolean(ownerId && userId && ownerId === userId)
+}
+
+function toImagePath(file) {
+  return `/uploads/products/${file.filename}`
+}
+
+function collectUploadedImagePaths(req) {
+  const filesByField = req?.files && typeof req.files === 'object' ? req.files : {}
+  const many = Array.isArray(filesByField.images) ? filesByField.images : []
+  const single = Array.isArray(filesByField.image) ? filesByField.image : []
+
+  const chosen = many.length ? many : single
+  return chosen.map(toImagePath)
+}
+
+function deleteLocalProductImages(imagePaths) {
+  const paths = Array.isArray(imagePaths) ? imagePaths : [imagePaths]
+  const filenames = Array.from(
+    new Set(
+      paths
+        .map((value) => String(value ?? '').trim())
+        .filter((value) => value.startsWith('/uploads/products/'))
+        .map((value) => path.basename(value)),
+    ),
+  )
+
+  for (const filename of filenames) {
+    const filePath = path.join(productsUploadDir, filename)
+    fs.promises.unlink(filePath).catch(() => {})
+  }
+}
+
 function hasCartPaymentInfo(product) {
   if (typeof product?.isAdminProduct === 'boolean') {
     return product.isAdminProduct
@@ -117,8 +161,9 @@ productsRouter.get('/:productId', async (req, res, next) => {
 })
 
 // POST /api/v1/products (multipart/form-data)
-// fields: name, price, category, description, contactPhone, image(file)
-productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, next) => {
+// fields: name, price, category, description, contactPhone,
+// image(file) or images(files[])
+productsRouter.post('/', requireAuth, uploadProductImages, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -138,13 +183,14 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
       return res.status(400).json({ ok: false, error: 'Invalid price' })
     }
 
-    if (!req.file) {
-      return res.status(400).json({ ok: false, error: 'Image is required' })
+    const imagePaths = collectUploadedImagePaths(req)
+    if (!imagePaths.length) {
+      return res.status(400).json({ ok: false, error: 'At least one image is required' })
     }
 
     const isAdmin = String(req.auth?.role ?? '').toLowerCase() === 'admin'
 
-    const imagePath = `/uploads/products/${req.file.filename}`
+    const coverImagePath = imagePaths[0]
 
     const product = await Product.create({
       name,
@@ -152,12 +198,112 @@ productsRouter.post('/', requireAuth, upload.single('image'), async (req, res, n
       category,
       description,
       contactPhone,
-      imageUrl: imagePath,
+      imageUrl: coverImagePath,
+      images: imagePaths,
       sellerUserId: req.auth?.userId ?? null,
       isAdminProduct: isAdmin,
     })
 
     return res.status(201).json({ ok: true, product: serializeProduct(product.toObject()) })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// PATCH /api/v1/products/:productId (multipart/form-data)
+// editable fields: name, price, category, description, contactPhone, image(s)
+productsRouter.patch('/:productId', requireAuth, uploadProductImages, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const productId = String(req.params?.productId ?? '').trim()
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid productId' })
+    }
+
+    const product = await Product.findById(productId)
+    if (!product) return res.status(404).json({ ok: false, error: 'Product not found' })
+
+    if (!canManageProduct(product, req.auth)) {
+      return res.status(403).json({ ok: false, error: 'You can only edit your own product' })
+    }
+
+    if (req.body?.name !== undefined) {
+      const name = String(req.body.name ?? '').trim()
+      if (!name) return res.status(400).json({ ok: false, error: 'Invalid name' })
+      product.name = name
+    }
+
+    if (req.body?.category !== undefined) {
+      const category = String(req.body.category ?? '').trim()
+      if (!category) return res.status(400).json({ ok: false, error: 'Invalid category' })
+      product.category = category
+    }
+
+    if (req.body?.description !== undefined) {
+      const description = String(req.body.description ?? '').trim()
+      if (!description) return res.status(400).json({ ok: false, error: 'Invalid description' })
+      product.description = description
+    }
+
+    if (req.body?.contactPhone !== undefined) {
+      const contactPhone = String(req.body.contactPhone ?? '').trim()
+      if (!contactPhone) return res.status(400).json({ ok: false, error: 'Invalid contactPhone' })
+      product.contactPhone = contactPhone
+    }
+
+    if (req.body?.price !== undefined) {
+      const price = Number(req.body.price)
+      if (!Number.isFinite(price) || price < 0) {
+        return res.status(400).json({ ok: false, error: 'Invalid price' })
+      }
+      product.price = price
+    }
+
+    const newImagePaths = collectUploadedImagePaths(req)
+    if (newImagePaths.length) {
+      const previous = Array.isArray(product.images) && product.images.length
+        ? product.images
+        : [product.imageUrl]
+
+      product.images = newImagePaths
+      product.imageUrl = newImagePaths[0]
+
+      deleteLocalProductImages(previous)
+    }
+
+    await product.save()
+    return res.json({ ok: true, product: serializeProduct(product.toObject()) })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// DELETE /api/v1/products/:productId
+productsRouter.delete('/:productId', requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const productId = String(req.params?.productId ?? '').trim()
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid productId' })
+    }
+
+    const product = await Product.findById(productId)
+    if (!product) return res.status(404).json({ ok: false, error: 'Product not found' })
+
+    if (!canManageProduct(product, req.auth)) {
+      return res.status(403).json({ ok: false, error: 'You can only delete your own product' })
+    }
+
+    const toDelete = Array.isArray(product.images) && product.images.length
+      ? product.images
+      : [product.imageUrl]
+
+    await product.deleteOne()
+    deleteLocalProductImages(toDelete)
+
+    return res.json({ ok: true, deletedId: String(product._id) })
   } catch (err) {
     return next(err)
   }

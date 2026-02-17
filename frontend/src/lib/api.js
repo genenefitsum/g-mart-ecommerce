@@ -164,6 +164,16 @@ export async function apiCreateProduct(formData) {
   return res.data
 }
 
+export async function apiUpdateProduct(productId, formData) {
+  const res = await api.patch(`/products/${productId}`, formData)
+  return res.data
+}
+
+export async function apiDeleteProduct(productId) {
+  const res = await api.delete(`/products/${productId}`)
+  return res.data
+}
+
 export async function apiGetProduct(productId) {
   const res = await api.get(`/products/${productId}`)
   return res.data

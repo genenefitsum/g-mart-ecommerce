@@ -18,13 +18,18 @@ before(async () => {
 
 beforeEach(async () => {
   await resetTestDb()
+
+  process.env.ADMIN_PAYMENT_TELEBIRR_PHONE = '+251911111111'
+  process.env.ADMIN_PAYMENT_BANK_NAME = 'Test Bank'
+  process.env.ADMIN_PAYMENT_BANK_ACCOUNT_NUMBER = '1234567890'
+  process.env.ADMIN_PAYMENT_BANK_ACCOUNT_NAME = 'Gmart Admin'
 })
 
 after(async () => {
   await teardownTestDb()
 })
 
-async function makeProduct({ sellerPayment }) {
+async function makeProduct() {
   const { default: Product } = await import('../src/models/Product.js')
   return Product.create({
     name: 'Test Product',
@@ -33,8 +38,9 @@ async function makeProduct({ sellerPayment }) {
     description: 'A product used for automated tests only.',
     contactPhone: '+251900000000',
     imageUrl: 'http://localhost:4000/uploads/products/test.jpg',
+    images: ['http://localhost:4000/uploads/products/test.jpg'],
     sellerUserId: null,
-    sellerPayment,
+    isAdminProduct: true,
   })
 }
 
@@ -51,7 +57,7 @@ test('orders: create -> list -> get single', async () => {
 
   const token = reg.body.accessToken
 
-  const product = await makeProduct({ sellerPayment: { telebirrPhone: '+251911111111' } })
+  const product = await makeProduct()
 
   const createRes = await http
     .post('/api/v1/orders')
@@ -71,7 +77,7 @@ test('orders: create -> list -> get single', async () => {
   assert.equal(createRes.body?.ok, true)
   assert.ok(createRes.body?.order?._id)
   assert.equal(createRes.body.order.subtotal, 100)
-  assert.equal(createRes.body.order.recipient?.telebirrPhone, '+251911111111')
+  assert.equal(createRes.body.order.recipient?.telebirrPhone, process.env.ADMIN_PAYMENT_TELEBIRR_PHONE)
 
   const orderId = String(createRes.body.order._id)
 
@@ -106,13 +112,7 @@ test('orders: upload payment proof sets status payment_submitted', async () => {
 
   const token = reg.body.accessToken
 
-  const product = await makeProduct({
-    sellerPayment: {
-      bankName: 'Test Bank',
-      bankAccountNumber: '1234567890',
-      bankAccountName: 'Test Seller',
-    },
-  })
+  const product = await makeProduct()
 
   const createRes = await http
     .post('/api/v1/orders')

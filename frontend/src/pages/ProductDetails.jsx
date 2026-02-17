@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ShoppingCart } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Trash2 } from 'lucide-react'
 
-import { apiGetProduct, resolveAssetUrl } from '@/lib/api'
+import { apiDeleteProduct, apiGetProduct, apiUpdateProduct, resolveAssetUrl } from '@/lib/api'
+import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { toErrorMessage } from '@/lib/errors'
 import { formatBirr } from '@/lib/utils'
 
@@ -19,6 +22,12 @@ const fallbackImage = `data:image/svg+xml,${encodeURIComponent(
 
 function normalizeProduct(product) {
   const id = String(product?._id ?? product?.id ?? '')
+  const fromImages = Array.isArray(product?.images) ? product.images : []
+  const fallbackList = [product?.imageUrl, product?.image]
+  const images = [...fromImages, ...fallbackList]
+    .map((value) => resolveAssetUrl(value))
+    .filter(Boolean)
+
   return {
     id,
     name: product?.name ?? '',
@@ -26,7 +35,9 @@ function normalizeProduct(product) {
     price: Number(product?.price ?? 0),
     description: product?.description ?? '',
     contactPhone: product?.contactPhone ?? '',
-    image: resolveAssetUrl(product?.imageUrl ?? product?.image ?? ''),
+    image: images[0] ?? '',
+    images,
+    sellerUserId: String(product?.sellerUserId ?? ''),
     canAddToCart:
       typeof product?.canAddToCart === 'boolean'
         ? product.canAddToCart
@@ -37,11 +48,29 @@ function normalizeProduct(product) {
 export default function ProductDetails() {
   const { productId } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { addToCart } = useCart()
 
   const [product, setProduct] = useState(null)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [editError, setEditError] = useState('')
+  const [editName, setEditName] = useState('')
+  const [editPrice, setEditPrice] = useState('')
+  const [editCategory, setEditCategory] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editContactPhone, setEditContactPhone] = useState('')
+  const [editImageFiles, setEditImageFiles] = useState([])
+
+  const isOwnerOrAdmin = useMemo(() => {
+    if (!user || !product) return false
+    if (String(user.role ?? '').toLowerCase() === 'admin') return true
+    return String(user.id ?? '') === String(product.sellerUserId ?? '')
+  }, [user, product])
 
   useEffect(() => {
     let cancelled = false
@@ -66,6 +95,74 @@ export default function ProductDetails() {
       cancelled = true
     }
   }, [productId])
+
+  useEffect(() => {
+    setSelectedImageIndex(0)
+  }, [product?.id])
+
+  const activeImage = product?.images?.[selectedImageIndex] || product?.image || fallbackImage
+
+  const openEdit = () => {
+    if (!product) return
+    setEditName(product.name)
+    setEditPrice(String(product.price ?? ''))
+    setEditCategory(product.category)
+    setEditDescription(product.description)
+    setEditContactPhone(product.contactPhone)
+    setEditImageFiles([])
+    setEditError('')
+    setIsEditing(true)
+  }
+
+  const saveEdit = async (e) => {
+    e.preventDefault()
+    if (!product?.id) return
+
+    setIsSaving(true)
+    try {
+      setEditError('')
+
+      const formData = new FormData()
+      formData.append('name', editName.trim())
+      formData.append('price', String(Number(editPrice)))
+      formData.append('category', editCategory.trim())
+      formData.append('description', editDescription.trim())
+      formData.append('contactPhone', editContactPhone.trim())
+
+      editImageFiles.forEach((file) => {
+        formData.append('images', file)
+      })
+
+      const data = await apiUpdateProduct(product.id, formData)
+      if (!data?.ok) throw new Error(data?.error || 'Failed to update product')
+
+      setProduct(normalizeProduct(data.product))
+      setIsEditing(false)
+    } catch (err) {
+      setEditError(toErrorMessage(err, 'Failed to update product'))
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const deleteProduct = async () => {
+    if (!product?.id) return
+
+    const ok = window.confirm('Delete this product permanently?')
+    if (!ok) return
+
+    setIsDeleting(true)
+    try {
+      setEditError('')
+      const data = await apiDeleteProduct(product.id)
+      if (!data?.ok) throw new Error(data?.error || 'Failed to delete product')
+      navigate('/')
+    } catch (err) {
+      setEditError(toErrorMessage(err, 'Failed to delete product'))
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -118,16 +215,160 @@ export default function ProductDetails() {
         </Button>
       </div>
 
+      {isOwnerOrAdmin ? (
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" onClick={openEdit} disabled={isDeleting}>
+            Edit product
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="text-red-600 border-red-200 hover:bg-red-50"
+            onClick={deleteProduct}
+            disabled={isDeleting}
+          >
+            <Trash2 />
+            {isDeleting ? 'Deleting…' : 'Delete product'}
+          </Button>
+        </div>
+      ) : null}
+
+      {isEditing ? (
+        <form onSubmit={saveEdit} className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 grid gap-3">
+          <div className="text-base font-semibold text-gray-900">Edit product</div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-price">Price</Label>
+              <Input
+                id="edit-price"
+                type="number"
+                min={0}
+                step="0.01"
+                value={editPrice}
+                onChange={(e) => setEditPrice(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-category">Category</Label>
+              <Input id="edit-category" value={editCategory} onChange={(e) => setEditCategory(e.target.value)} required />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-contact">Contact phone</Label>
+              <Input
+                id="edit-contact"
+                value={editContactPhone}
+                onChange={(e) => setEditContactPhone(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <textarea
+                id="edit-description"
+                className="min-h-[110px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="edit-images">Replace images (optional)</Label>
+              <Input
+                id="edit-images"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => setEditImageFiles(Array.from(e.target.files ?? []))}
+              />
+              <div className="text-xs text-gray-500">If you add images, the first selected image becomes the cover.</div>
+            </div>
+          </div>
+
+          {editError ? <div className="text-sm text-red-600">{editError}</div> : null}
+
+          <div className="flex items-center gap-2">
+            <Button type="submit" className="bg-blue-600 text-white hover:bg-blue-700" disabled={isSaving}>
+              {isSaving ? 'Saving…' : 'Save changes'}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      ) : null}
+
+      {!isEditing && editError ? <div className="mb-4 text-sm text-red-600">{editError}</div> : null}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-gray-200 bg-white p-4">
           <img
-            src={product.image || fallbackImage}
+            src={activeImage}
             alt={product.name}
             className="h-[380px] w-full rounded-xl object-cover"
             onError={(e) => {
               e.currentTarget.src = fallbackImage
             }}
           />
+
+          {product.images.length > 1 ? (
+            <>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setSelectedImageIndex((prev) =>
+                      prev <= 0 ? product.images.length - 1 : prev - 1,
+                    )
+                  }
+                >
+                  <ChevronLeft />
+                  Prev
+                </Button>
+                <div className="text-xs text-gray-500">
+                  {selectedImageIndex + 1} / {product.images.length}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setSelectedImageIndex((prev) =>
+                      prev >= product.images.length - 1 ? 0 : prev + 1,
+                    )
+                  }
+                >
+                  Next
+                  <ChevronRight />
+                </Button>
+              </div>
+
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                {product.images.map((imageUrl, index) => (
+                  <button
+                    key={`${imageUrl}-${index}`}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={
+                      `h-16 w-16 shrink-0 overflow-hidden rounded border ${index === selectedImageIndex ? 'border-blue-600' : 'border-gray-200'}`
+                    }
+                  >
+                    <img src={imageUrl} alt={`${product.name} ${index + 1}`} className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5">

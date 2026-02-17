@@ -30,7 +30,7 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
     const [category, setCategory] = useState(CATEGORIES[0])
     const [description, setDescription] = useState('')
     const [contactPhone, setContactPhone] = useState('')
-    const [imageFile, setImageFile] = useState(null)
+    const [imageFiles, setImageFiles] = useState([])
 
     const canSubmit = useMemo(() => {
         if (!name.trim()) return false
@@ -38,10 +38,10 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
         if (!category) return false
         if (!description.trim()) return false
         if (!contactPhone.trim()) return false
-        if (!imageFile) return false
+        if (!imageFiles.length) return false
 
         return true
-    }, [name, price, category, description, contactPhone, imageFile])
+    }, [name, price, category, description, contactPhone, imageFiles])
 
     const resetForm = () => {
         setName('')
@@ -49,7 +49,7 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
         setCategory(CATEGORIES[0])
         setDescription('')
         setContactPhone('')
-        setImageFile(null)
+        setImageFiles([])
         setError('')
     }
 
@@ -86,7 +86,9 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
             formData.append('category', category)
             formData.append('description', description.trim())
             formData.append('contactPhone', contactPhone.trim())
-            formData.append('image', imageFile)
+            imageFiles.forEach((file) => {
+                formData.append('images', file)
+            })
 
             const data = await apiCreateProduct(formData)
             if (!data?.ok) {
@@ -202,14 +204,18 @@ const SellProduct = ({ onCreated, onRequireAuth }) => {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="sell-image">Image</Label>
+                                    <Label htmlFor="sell-image">Images</Label>
                                     <Input
                                         id="sell-image"
                                         type="file"
                                         accept="image/*"
-                                        onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                                        multiple
+                                        onChange={(e) => setImageFiles(Array.from(e.target.files ?? []))}
                                         required
                                     />
+                                    <div className="text-xs text-gray-500">
+                                        Add one or more images. The first selected image is used as cover.
+                                    </div>
                                 </div>
 
                                 {error ? <div className="text-sm text-red-600">{toErrorMessage(error, '')}</div> : null}
