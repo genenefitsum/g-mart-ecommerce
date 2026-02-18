@@ -71,6 +71,14 @@ test('products: create (auth) then fetch by id', async () => {
   assert.equal(getRes.status, 200)
   assert.equal(getRes.body?.ok, true)
   assert.equal(String(getRes.body?.product?._id), productId)
+
+  const meRes = await http
+    .get('/api/v1/auth/me')
+    .set('Authorization', `Bearer ${token}`)
+
+  assert.equal(meRes.status, 200)
+  assert.equal(meRes.body?.ok, true)
+  assert.equal(meRes.body?.user?.role, 'seller')
 })
 
 test('products: seller can update and delete own product', async () => {

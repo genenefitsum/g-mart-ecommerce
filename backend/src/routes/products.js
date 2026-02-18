@@ -7,6 +7,7 @@ import mongoose from 'mongoose'
 import { getMongoStatus } from '../db/mongo.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import Product from '../models/Product.js'
+import User from '../models/User.js'
 import { getUploadsRoot } from '../lib/uploads.js'
 import {
   deleteCloudinaryImageByUrl,
@@ -246,6 +247,14 @@ productsRouter.post('/', requireAuth, uploadProductImages, async (req, res, next
       sellerUserId: req.auth?.userId ?? null,
       isAdminProduct: isAdmin,
     })
+
+    const authUserId = String(req.auth?.userId ?? '').trim()
+    if (authUserId) {
+      await User.updateOne(
+        { _id: authUserId, role: 'buyer' },
+        { $set: { role: 'seller' } },
+      )
+    }
 
     return res.status(201).json({ ok: true, product: serializeProduct(product.toObject()) })
   } catch (err) {
