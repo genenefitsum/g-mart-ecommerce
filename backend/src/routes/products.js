@@ -205,7 +205,7 @@ productsRouter.get('/mine', requireAuth, async (req, res, next) => {
 })
 
 // GET /api/v1/products/:productId
-productsRouter.get('/:productId', async (req, res, next) => {
+productsRouter.get('/:productId([0-9a-fA-F]{24})', async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 

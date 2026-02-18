@@ -24,6 +24,17 @@ function formatDate(value) {
   return d.toLocaleString()
 }
 
+function getProductId(value) {
+  const raw = value?._id
+  if (typeof raw === 'string') return raw.trim()
+  if (raw && typeof raw === 'object' && typeof raw.$oid === 'string') return raw.$oid.trim()
+  if (raw && typeof raw?.toString === 'function') {
+    const text = String(raw.toString()).trim()
+    if (text && text !== '[object Object]') return text
+  }
+  return ''
+}
+
 export default function Account({ onRequireAuth }) {
   const navigate = useNavigate()
   const { user, logout, setUser } = useAuth()
@@ -341,13 +352,16 @@ export default function Account({ onRequireAuth }) {
           ) : (
             <div className="mt-4 grid gap-3">
               {myProducts.map((product) => (
-                <div key={product._id} className="rounded-xl border border-gray-200 p-4">
+                <div key={getProductId(product) || product.name} className="rounded-xl border border-gray-200 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="text-sm font-semibold text-gray-900">{product.name}</div>
                     <div className="text-xs text-gray-500">{formatDate(product.createdAt)}</div>
                   </div>
 
                   <div className="mt-2 grid gap-1 text-sm text-gray-700">
+                    <div>
+                      <span className="text-gray-500">Product ID:</span> {getProductId(product) || 'N/A'}
+                    </div>
                     <div>
                       <span className="text-gray-500">Category:</span> {product.category}
                     </div>
@@ -360,7 +374,8 @@ export default function Account({ onRequireAuth }) {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => navigate(`/product/${product._id}`)}
+                      disabled={!getProductId(product)}
+                      onClick={() => navigate(`/product/${getProductId(product)}`)}
                     >
                       View product
                     </Button>
