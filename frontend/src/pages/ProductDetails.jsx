@@ -2,10 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Trash2 } from 'lucide-react'
 
-import { apiDeleteProduct, apiGetProduct, apiUpdateProduct, resolveAssetUrl } from '@/lib/api'
+import {
+  apiCreateProductInterest,
+  apiDeleteProduct,
+  apiGetProduct,
+  apiUpdateProduct,
+  resolveAssetUrl,
+} from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toErrorMessage } from '@/lib/errors'
@@ -65,12 +72,31 @@ export default function ProductDetails() {
   const [editDescription, setEditDescription] = useState('')
   const [editContactPhone, setEditContactPhone] = useState('')
   const [editImageFiles, setEditImageFiles] = useState([])
+  const [contactOpen, setContactOpen] = useState(false)
+  const [interestMode, setInterestMode] = useState('notify_only')
+  const [buyerPhone, setBuyerPhone] = useState('')
+  const [buyerEmail, setBuyerEmail] = useState('')
+  const [buyerNote, setBuyerNote] = useState('')
+  const [interestSubmitting, setInterestSubmitting] = useState(false)
+  const [interestStatus, setInterestStatus] = useState('')
+  const [interestError, setInterestError] = useState('')
 
   const isOwnerOrAdmin = useMemo(() => {
     if (!user || !product) return false
     if (String(user.role ?? '').toLowerCase() === 'admin') return true
     return String(user.id ?? '') === String(product.sellerUserId ?? '')
   }, [user, product])
+
+  const isSellerProduct = useMemo(() => {
+    if (!product) return false
+    return !product.canAddToCart && Boolean(String(product.sellerUserId ?? '').trim())
+  }, [product])
+
+  const canSendInterest = useMemo(() => {
+    if (!isSellerProduct) return false
+    if (!user) return true
+    return String(user.id ?? '') !== String(product?.sellerUserId ?? '')
+  }, [isSellerProduct, product?.sellerUserId, user])
 
   useEffect(() => {
     let cancelled = false
@@ -161,6 +187,56 @@ export default function ProductDetails() {
       setEditError(toErrorMessage(err, 'Failed to delete product'))
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const openContactDialog = () => {
+    if (!product) return
+
+    if (!user) {
+      navigate('/account')
+      return
+    }
+
+    setInterestMode('notify_only')
+    setBuyerPhone('')
+    setBuyerEmail(user?.email ?? '')
+    setBuyerNote('')
+    setInterestStatus('')
+    setInterestError('')
+    setContactOpen(true)
+  }
+
+  const submitInterest = async (event) => {
+    event.preventDefault()
+    if (!product?.id) return
+
+    setInterestSubmitting(true)
+    setInterestError('')
+    setInterestStatus('')
+
+    try {
+      const payload = {
+        mode: interestMode,
+      }
+
+      if (interestMode === 'with_contact') {
+        payload.buyerContact = {
+          phone: String(buyerPhone ?? '').trim(),
+          email: String(buyerEmail ?? '').trim(),
+          note: String(buyerNote ?? '').trim(),
+        }
+      }
+
+      const data = await apiCreateProductInterest(product.id, payload)
+      if (!data?.ok) throw new Error(data?.error || 'Failed to notify seller')
+
+      setInterestStatus('Interest sent to the product owner.')
+      setContactOpen(false)
+    } catch (err) {
+      setInterestError(toErrorMessage(err, 'Failed to notify seller'))
+    } finally {
+      setInterestSubmitting(false)
     }
   }
 
@@ -400,9 +476,104 @@ export default function ProductDetails() {
             <div className="text-sm text-gray-700">
               Phone: <span className="font-semibold">{product.contactPhone || '—'}</span>
             </div>
+
+            {canSendInterest ? (
+              <div>
+                <Button type="button" variant="outline" onClick={openContactDialog}>
+                  Contact seller
+                </Button>
+              </div>
+            ) : null}
+
+            {interestStatus ? (
+              <div className="text-sm text-green-700">{interestStatus}</div>
+            ) : null}
+            {interestError ? (
+              <div className="text-sm text-red-600">{interestError}</div>
+            ) : null}
           </div>
         </div>
       </div>
+
+      <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+        <DialogContent className="w-[min(92vw,560px)] max-w-none rounded-3xl border border-gray-200 bg-white p-6 sm:p-7">
+          <form onSubmit={submitInterest} className="grid gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Contact seller</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Choose whether to notify the seller only, or include your contact details.
+              </p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button
+                type="button"
+                variant={interestMode === 'notify_only' ? 'default' : 'outline'}
+                onClick={() => setInterestMode('notify_only')}
+              >
+                Notify only
+              </Button>
+              <Button
+                type="button"
+                variant={interestMode === 'with_contact' ? 'default' : 'outline'}
+                onClick={() => setInterestMode('with_contact')}
+              >
+                Notify + contact info
+              </Button>
+            </div>
+
+            {interestMode === 'with_contact' ? (
+              <div className="grid gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="interest-phone">Phone</Label>
+                  <Input
+                    id="interest-phone"
+                    value={buyerPhone}
+                    onChange={(e) => setBuyerPhone(e.target.value)}
+                    placeholder="+2519..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="interest-email">Email</Label>
+                  <Input
+                    id="interest-email"
+                    type="email"
+                    value={buyerEmail}
+                    onChange={(e) => setBuyerEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="interest-note">Short note (optional)</Label>
+                  <textarea
+                    id="interest-note"
+                    className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={buyerNote}
+                    onChange={(e) => setBuyerNote(e.target.value)}
+                    maxLength={500}
+                    placeholder="I am interested in this product."
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {interestError ? (
+              <div className="text-sm text-red-600">{interestError}</div>
+            ) : null}
+
+            <div className="flex items-center gap-2">
+              <Button type="submit" disabled={interestSubmitting}>
+                {interestSubmitting ? 'Sending…' : 'Send notification'}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setContactOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

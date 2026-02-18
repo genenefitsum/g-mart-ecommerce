@@ -197,6 +197,16 @@ export async function apiListMyProducts() {
   return res.data
 }
 
+export async function apiCreateProductInterest(productId, payload) {
+  const res = await api.post(`/products/${productId}/interest`, payload)
+  return res.data
+}
+
+export async function apiListMyProductInterests() {
+  const res = await api.get('/products/interests/mine')
+  return res.data
+}
+
 export async function apiGetWishlist() {
   const res = await api.get('/wishlist')
   return res.data

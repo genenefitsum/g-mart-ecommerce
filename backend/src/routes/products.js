@@ -7,6 +7,7 @@ import mongoose from 'mongoose'
 import { getMongoStatus } from '../db/mongo.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import Product from '../models/Product.js'
+import ProductInterest from '../models/ProductInterest.js'
 import User from '../models/User.js'
 import { getUploadsRoot } from '../lib/uploads.js'
 import {
@@ -151,6 +152,48 @@ function serializeProduct(product) {
   }
 }
 
+function isValidEmail(value) {
+  const email = String(value ?? '').trim()
+  if (!email) return false
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+function isValidPhone(value) {
+  const phone = String(value ?? '').trim()
+  if (!phone) return false
+  return /^\+?[0-9\s()-]{7,20}$/.test(phone)
+}
+
+function serializeProductInterest(interest) {
+  const plain = interest && typeof interest === 'object' ? interest : {}
+  const product = plain.productId && typeof plain.productId === 'object' ? plain.productId : {}
+  const buyer = plain.buyerUserId && typeof plain.buyerUserId === 'object' ? plain.buyerUserId : {}
+
+  return {
+    _id: String(plain._id ?? ''),
+    mode: plain.mode,
+    status: plain.status,
+    createdAt: plain.createdAt,
+    product: {
+      id: String(product._id ?? ''),
+      name: String(product.name ?? ''),
+      category: String(product.category ?? ''),
+      price: Number(product.price ?? 0),
+      imageUrl: String(product.imageUrl ?? ''),
+    },
+    buyer: {
+      id: String(buyer._id ?? plain.buyerUserId ?? ''),
+      name: String(buyer.name ?? plain.buyerNameSnapshot ?? ''),
+      email: String(buyer.email ?? plain.buyerEmailSnapshot ?? ''),
+    },
+    buyerContact: {
+      phone: String(plain.buyerContact?.phone ?? ''),
+      email: String(plain.buyerContact?.email ?? ''),
+      note: String(plain.buyerContact?.note ?? ''),
+    },
+  }
+}
+
 // GET /api/v1/products?category=...&q=...
 productsRouter.get('/', async (req, res, next) => {
   try {
@@ -199,6 +242,143 @@ productsRouter.get('/mine', requireAuth, async (req, res, next) => {
       .lean()
 
     return res.json({ ok: true, products: products.map(serializeProduct) })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// POST /api/v1/products/:productId/interest
+// body: { mode: 'notify_only' | 'with_contact', buyerContact?: { phone, email, note } }
+productsRouter.post('/:productId/interest', requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const productId = String(req.params?.productId ?? '').trim()
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid productId' })
+    }
+
+    const mode = String(req.body?.mode ?? '').trim().toLowerCase()
+    if (mode !== 'notify_only' && mode !== 'with_contact') {
+      return res.status(400).json({ ok: false, error: 'Invalid mode' })
+    }
+
+    const product = await Product.findById(productId).select('_id name sellerUserId isAdminProduct')
+    if (!product) {
+      return res.status(404).json({ ok: false, error: 'Product not found' })
+    }
+
+    const sellerUserId = String(product?.sellerUserId ?? '').trim()
+    if (!sellerUserId || product?.isAdminProduct) {
+      return res.status(400).json({ ok: false, error: 'This product does not support seller contact' })
+    }
+
+    const buyerUserId = String(req.auth?.userId ?? '').trim()
+    if (!buyerUserId) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    if (buyerUserId === sellerUserId) {
+      return res.status(403).json({ ok: false, error: 'You cannot send interest for your own product' })
+    }
+
+    const rawContact = req.body?.buyerContact ?? {}
+    const phone = String(rawContact?.phone ?? '').trim()
+    const email = String(rawContact?.email ?? '').trim().toLowerCase()
+    const note = String(rawContact?.note ?? '').trim()
+
+    if (mode === 'with_contact') {
+      if (!phone && !email) {
+        return res.status(400).json({ ok: false, error: 'Provide phone or email for contact mode' })
+      }
+
+      if (phone && !isValidPhone(phone)) {
+        return res.status(400).json({ ok: false, error: 'Invalid phone' })
+      }
+
+      if (email && !isValidEmail(email)) {
+        return res.status(400).json({ ok: false, error: 'Invalid email' })
+      }
+
+      if (note.length > 500) {
+        return res.status(400).json({ ok: false, error: 'Note is too long' })
+      }
+    }
+
+    const duplicateSince = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const duplicate = await ProductInterest.findOne({
+      productId,
+      buyerUserId,
+      mode,
+      createdAt: { $gte: duplicateSince },
+    })
+      .sort({ createdAt: -1 })
+      .lean()
+
+    if (duplicate) {
+      return res.status(409).json({
+        ok: false,
+        error: 'You already sent this interest recently. Please try again later.',
+      })
+    }
+
+    const buyer = await User.findById(buyerUserId).select('name email')
+    if (!buyer) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    const created = await ProductInterest.create({
+      productId,
+      sellerUserId,
+      buyerUserId,
+      buyerNameSnapshot: String(buyer.name ?? '').trim(),
+      buyerEmailSnapshot: String(buyer.email ?? '').trim().toLowerCase(),
+      mode,
+      buyerContact:
+        mode === 'with_contact'
+          ? {
+              phone,
+              email,
+              note,
+            }
+          : {
+              phone: '',
+              email: '',
+              note: '',
+            },
+    })
+
+    return res.status(201).json({
+      ok: true,
+      message: 'There is a user interested in your product.',
+      interestId: String(created._id),
+    })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// GET /api/v1/products/interests/mine
+productsRouter.get('/interests/mine', requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const sellerUserId = String(req.auth?.userId ?? '').trim()
+    if (!sellerUserId) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    const interests = await ProductInterest.find({ sellerUserId })
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .populate('productId', '_id name category price imageUrl')
+      .populate('buyerUserId', '_id name email')
+      .lean()
+
+    return res.json({
+      ok: true,
+      interests: interests.map(serializeProductInterest),
+    })
   } catch (err) {
     return next(err)
   }
