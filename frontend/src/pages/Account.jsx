@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext'
 import {
   apiChangePassword,
   apiDeleteAccount,
+  apiListMyProducts,
   apiListOrders,
   apiUpdateMe,
 } from '@/lib/api'
@@ -35,6 +36,10 @@ export default function Account({ onRequireAuth }) {
   const [orders, setOrders] = useState([])
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [ordersError, setOrdersError] = useState('')
+
+  const [myProducts, setMyProducts] = useState([])
+  const [myProductsLoading, setMyProductsLoading] = useState(false)
+  const [myProductsError, setMyProductsError] = useState('')
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -72,6 +77,40 @@ export default function Account({ onRequireAuth }) {
         } finally {
           if (!cancelled) {
             setOrdersLoading(false)
+          }
+        }
+      })()
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (user) {
+      setMyProductsError('')
+      setMyProductsLoading(true)
+
+      ;(async () => {
+        try {
+          const data = await apiListMyProducts()
+          if (!data?.ok) throw new Error(data?.error || 'Failed to load your products')
+
+          if (!cancelled) {
+            setMyProducts(Array.isArray(data.products) ? data.products : [])
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setMyProductsError(
+              err?.response?.data?.error || err?.message || 'Failed to load your products',
+            )
+          }
+        } finally {
+          if (!cancelled) {
+            setMyProductsLoading(false)
           }
         }
       })()
@@ -288,6 +327,48 @@ export default function Account({ onRequireAuth }) {
               <div className="sm:col-span-2 text-sm text-green-700">{profileStatus}</div>
             ) : null}
           </form>
+        </Card>
+
+        <Card className="rounded-2xl border border-gray-200 p-5">
+          <div className="text-base font-semibold text-gray-900">My Products</div>
+
+          {myProductsLoading ? (
+            <div className="mt-3 text-sm text-gray-600">Loading your products…</div>
+          ) : myProductsError ? (
+            <div className="mt-3 text-sm text-red-600">{myProductsError}</div>
+          ) : myProducts.length === 0 ? (
+            <div className="mt-3 text-sm text-gray-600">You haven’t added any products yet.</div>
+          ) : (
+            <div className="mt-4 grid gap-3">
+              {myProducts.map((product) => (
+                <div key={product._id} className="rounded-xl border border-gray-200 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-sm font-semibold text-gray-900">{product.name}</div>
+                    <div className="text-xs text-gray-500">{formatDate(product.createdAt)}</div>
+                  </div>
+
+                  <div className="mt-2 grid gap-1 text-sm text-gray-700">
+                    <div>
+                      <span className="text-gray-500">Category:</span> {product.category}
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Price:</span> {formatBirr(product.price ?? 0)}
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => navigate(`/product/${product._id}`)}
+                    >
+                      View product
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         <Card className="rounded-2xl border border-gray-200 p-5">

@@ -183,6 +183,27 @@ productsRouter.get('/', async (req, res, next) => {
   }
 })
 
+// GET /api/v1/products/mine
+productsRouter.get('/mine', requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const userId = String(req.auth?.userId ?? '').trim()
+    if (!userId) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    const products = await Product.find({ sellerUserId: userId })
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean()
+
+    return res.json({ ok: true, products: products.map(serializeProduct) })
+  } catch (err) {
+    return next(err)
+  }
+})
+
 // GET /api/v1/products/:productId
 productsRouter.get('/:productId', async (req, res, next) => {
   try {

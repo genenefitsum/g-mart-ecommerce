@@ -185,3 +185,62 @@ test('products: seller cannot update or delete another seller product', async ()
 
   assert.equal(deleteRes.status, 403)
 })
+
+test('products: mine returns only products created by current user', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const sellerA = await registerAndGetToken(http, {
+    name: 'My Products Seller A',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(sellerA.status, 201)
+
+  const sellerB = await registerAndGetToken(http, {
+    name: 'My Products Seller B',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(sellerB.status, 201)
+
+  const sellerAImage = path.join(os.tmpdir(), `img-seller-a-${Date.now()}.jpg`)
+  const sellerBImage = path.join(os.tmpdir(), `img-seller-b-${Date.now()}.jpg`)
+  await fs.writeFile(sellerAImage, 'fake-image-a')
+  await fs.writeFile(sellerBImage, 'fake-image-b')
+
+  const createA = await http
+    .post('/api/v1/products')
+    .set('Authorization', `Bearer ${sellerA.body.accessToken}`)
+    .field('name', 'Seller A Listing')
+    .field('price', '100')
+    .field('category', 'Test')
+    .field('description', 'Seller A product to verify mine endpoint filtering.')
+    .field('contactPhone', '+251900000010')
+    .attach('image', sellerAImage)
+
+  assert.equal(createA.status, 201)
+  const sellerAProductId = String(createA.body?.product?._id)
+
+  const createB = await http
+    .post('/api/v1/products')
+    .set('Authorization', `Bearer ${sellerB.body.accessToken}`)
+    .field('name', 'Seller B Listing')
+    .field('price', '200')
+    .field('category', 'Test')
+    .field('description', 'Seller B product to verify mine endpoint filtering.')
+    .field('contactPhone', '+251900000011')
+    .attach('image', sellerBImage)
+
+  assert.equal(createB.status, 201)
+
+  const mineRes = await http
+    .get('/api/v1/products/mine')
+    .set('Authorization', `Bearer ${sellerA.body.accessToken}`)
+
+  assert.equal(mineRes.status, 200)
+  assert.equal(mineRes.body?.ok, true)
+  assert.equal(Array.isArray(mineRes.body?.products), true)
+  assert.equal(mineRes.body.products.length, 1)
+  assert.equal(String(mineRes.body.products[0]?._id), sellerAProductId)
+})

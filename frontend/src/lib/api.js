@@ -192,6 +192,11 @@ export async function apiGetProduct(productId) {
   return res.data
 }
 
+export async function apiListMyProducts() {
+  const res = await api.get('/products/mine')
+  return res.data
+}
+
 export async function apiGetWishlist() {
   const res = await api.get('/wishlist')
   return res.data
