@@ -1,84 +1,122 @@
-# 🛒 G-Mart — Modern E-Commerce Website
+# G-Mart
 
-G-Mart is a modern, responsive e-commerce web application built with **React**, **Vite**, and **Tailwind CSS**.  
-It provides a smooth shopping experience with fast performance, clean UI, and scalable architecture.
+G-Mart is a full-stack e-commerce app with a React frontend and an Express + MongoDB backend.
 
----
+## Features
 
-## 🚀 Features
+- User authentication (email/password + Google Sign-In)
+- Product create, update, delete, and detail pages
+- Image upload support (Cloudinary when configured)
+- Cart and checkout flow
+- Orders and admin management endpoints
+- Role-based access (`buyer`, `seller`, `admin`)
 
-- 🛍️ Product listing and product details
-- 🔍 Search and category filtering
-- 🛒 Shopping cart functionality
-- 👤 User authentication (planned)
-- 💳 Checkout & payment integration (planned)
-- 📦 Order management (planned)
-- 📱 Fully responsive design
-- ⚡ Fast development with Vite
+## Tech Stack
 
----
+- Frontend: React, Vite, Tailwind CSS, React Router
+- Backend: Node.js, Express, MongoDB (Mongoose)
+- Media: Cloudinary
 
-## 🧰 Tech Stack
+## Project Structure
 
-### Frontend
-- **React 19**
-- **Vite**
-- **React Router DOM**
-- **Axios**
-- **Tailwind CSS**
-- **React Icons**
+- `frontend` → React app
+- `backend` → API server
+- Root workspace uses npm workspaces to run both apps
 
-### Tooling
-- ESLint
-- PostCSS
-- Autoprefixer
+## Prerequisites
 
----
+- Node.js 22+
+- npm
+- MongoDB database
 
-## 🔐 Admin Account (Backend-First)
+## Installation
 
-G-mart supports role-based access with `buyer`, `seller`, and `admin`.
+```bash
+npm install
+```
 
-- Public signup always creates `buyer` users.
-- The first admin should be created by manually promoting an existing user in MongoDB.
+## Environment Variables
 
-### One-time admin bootstrap (manual)
+### Backend (`backend/.env`)
 
-1. Register a normal account from the app.
-2. In MongoDB shell, update that user role:
+```env
+PORT=4000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_access_token_secret
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
+
+# Optional
+ACCESS_TOKEN_TTL=15m
+REFRESH_TOKEN_TTL=30d
+CORS_ORIGIN=http://localhost:5173
+GOOGLE_CLIENT_ID=your_google_client_id
+
+# Cloudinary (optional, enables cloud uploads)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+### Frontend (`frontend/.env`)
+
+```env
+VITE_API_URL=http://localhost:4000
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+```
+
+## Run the Project
+
+From the root folder:
+
+```bash
+# Frontend dev server
+npm run dev
+
+# Backend dev server
+npm run dev:api
+```
+
+Frontend runs on `http://localhost:5173` and backend runs on `http://localhost:4000` by default.
+
+## Useful Commands
+
+```bash
+# Build frontend
+npm run build
+
+# Preview frontend build
+npm run preview
+
+# Frontend lint
+npm run lint
+
+# Backend tests
+npm --workspace backend test
+
+# Seed sample products
+npm --workspace backend run seed:products
+```
+
+## Admin Bootstrap
+
+If you need an admin account for the first time:
+
+1. Register a normal user.
+2. Promote the user role in MongoDB:
 
 ```js
 db.users.updateOne(
-	{ email: "your-email@example.com" },
-	{ $set: { role: "admin" } }
+  { email: "your-email@example.com" },
+  { $set: { role: "admin" } }
 )
 ```
 
-3. Log out and log in again so a new access token is issued with `role: admin`.
+3. Sign out and sign in again.
 
-### Admin API surface
+## Deployment Notes
 
-- `GET /api/v1/admin/users`
-- `PATCH /api/v1/admin/users/:userId/role`
-- `GET /api/v1/admin/orders`
-- `PATCH /api/v1/admin/orders/:orderId/status`
-- `GET /api/v1/admin/settings`
-- `PATCH /api/v1/admin/settings`
-
-All `admin` endpoints require a valid Bearer token from an admin account.
-
----
-
-## 🔑 Google Sign-In Setup
-
-To enable Google sign-in, configure the same Google OAuth Client ID in both backend and frontend.
-
-- Backend env: `GOOGLE_CLIENT_ID`
-- Frontend env: `VITE_GOOGLE_CLIENT_ID`
-
-### Google Console requirements
-
-- Authorized JavaScript origins: add your frontend origin (for example `http://localhost:5173` and your production domain).
-- Authorized redirect URIs are not required for this implementation because it uses Google Identity Services credential flow.
+- Set all required environment variables in your hosting platform.
+- Cloudinary is recommended in production for product images.
+- `vercel.json` files are included for frontend/backend deployment setup.
 
 ---
