@@ -172,6 +172,7 @@ adminRouter.get('/orders', async (req, res, next) => {
     if (status) filter.status = status
 
     const orders = await Order.find(filter)
+      .select('_id userId subtotal status createdAt items.productId')
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean()

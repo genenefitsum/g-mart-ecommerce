@@ -69,6 +69,8 @@ const productSchema = new Schema(
 )
 
 productSchema.index({ category: 1, createdAt: -1 })
+productSchema.index({ sellerUserId: 1, createdAt: -1 })
+productSchema.index({ isAdminProduct: 1, createdAt: -1 })
 productSchema.index({ name: 'text', description: 'text', category: 'text' })
 
 const Product = mongoose.models.Product ?? mongoose.model('Product', productSchema)

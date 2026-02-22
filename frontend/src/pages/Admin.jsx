@@ -62,6 +62,7 @@ export default function Admin() {
   const [usersLoading, setUsersLoading] = useState(false)
   const [usersError, setUsersError] = useState('')
   const [userSearch, setUserSearch] = useState('')
+  const [appliedUserSearch, setAppliedUserSearch] = useState('')
   const [userRoleFilter, setUserRoleFilter] = useState('')
   const [pendingUserRoles, setPendingUserRoles] = useState({})
   const [savingUserId, setSavingUserId] = useState('')
@@ -95,7 +96,7 @@ export default function Admin() {
 
     try {
       const data = await apiAdminListUsers({
-        q: userSearch.trim() || undefined,
+        q: appliedUserSearch || undefined,
         role: userRoleFilter || undefined,
       })
 
@@ -113,7 +114,7 @@ export default function Admin() {
     } finally {
       setUsersLoading(false)
     }
-  }, [userRoleFilter, userSearch])
+  }, [appliedUserSearch, userRoleFilter])
 
   const loadOrders = useCallback(async () => {
     setOrdersLoading(true)
@@ -175,6 +176,13 @@ export default function Admin() {
 
   const onSearchUsers = async (e) => {
     e.preventDefault()
+
+    const nextSearch = userSearch.trim()
+    if (nextSearch !== appliedUserSearch) {
+      setAppliedUserSearch(nextSearch)
+      return
+    }
+
     await loadUsers()
   }
 

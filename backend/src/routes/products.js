@@ -216,6 +216,7 @@ productsRouter.get('/', async (req, res, next) => {
     }
 
     const products = await Product.find(filter)
+      .select('_id name category price imageUrl isAdminProduct sellerUserId createdAt')
       .sort({ createdAt: -1 })
       .limit(200)
       .lean()
@@ -237,6 +238,7 @@ productsRouter.get('/mine', requireAuth, async (req, res, next) => {
     }
 
     const products = await Product.find({ sellerUserId: userId })
+      .select('_id name category price description contactPhone imageUrl images sellerUserId isAdminProduct createdAt updatedAt')
       .sort({ createdAt: -1 })
       .limit(200)
       .lean()
