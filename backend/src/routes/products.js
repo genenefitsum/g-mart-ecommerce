@@ -27,6 +27,12 @@ function mongoGuard(req, res) {
   return true
 }
 
+function normalizeLimit(value, fallback = 200, max = 200) {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return fallback
+  return Math.max(1, Math.min(max, Math.floor(num)))
+}
+
 const uploadsRoot = getUploadsRoot()
 const productsUploadDir = path.join(uploadsRoot, 'products')
 fs.mkdirSync(productsUploadDir, { recursive: true })
@@ -201,6 +207,7 @@ productsRouter.get('/', async (req, res, next) => {
 
     const category = String(req.query?.category ?? '').trim()
     const q = String(req.query?.q ?? '').trim()
+    const limit = normalizeLimit(req.query?.limit, 200, 200)
 
     const filter = {}
     if (category) filter.category = category
@@ -218,7 +225,7 @@ productsRouter.get('/', async (req, res, next) => {
     const products = await Product.find(filter)
       .select('_id name category price imageUrl isAdminProduct sellerUserId createdAt')
       .sort({ createdAt: -1 })
-      .limit(200)
+      .limit(limit)
       .lean()
 
     return res.json({ ok: true, products: products.map(serializeProduct) })

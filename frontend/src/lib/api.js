@@ -156,11 +156,20 @@ export async function apiLogout() {
   return res.data
 }
 
-export async function apiListProducts({ category, q } = {}) {
+export async function apiListProducts({ category, q, limit, timeoutMs } = {}) {
   const params = {}
   if (category) params.category = category
   if (q) params.q = q
-  const res = await api.get('/products', { params })
+  if (Number.isFinite(Number(limit)) && Number(limit) > 0) {
+    params.limit = Math.floor(Number(limit))
+  }
+
+  const config = { params }
+  if (Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0) {
+    config.timeout = Math.floor(Number(timeoutMs))
+  }
+
+  const res = await api.get('/products', config)
   return res.data
 }
 

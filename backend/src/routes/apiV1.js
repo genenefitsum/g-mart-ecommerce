@@ -11,6 +11,10 @@ apiV1.get('/', (_req, res) => {
     res.json({ ok: true, name: 'g-mart api', version: 'v1' })
 })
 
+apiV1.get('/healthz', (_req, res) => {
+    res.json({ ok: true, name: 'g-mart api', version: 'v1', ts: Date.now() })
+})
+
 apiV1.use('/auth', authRouter)
 apiV1.use('/admin', adminRouter)
 apiV1.use('/orders', ordersRouter)

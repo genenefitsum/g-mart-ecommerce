@@ -18,6 +18,7 @@ import Account from './pages/Account.jsx'
 import Admin from './pages/Admin.jsx'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { api } from '@/lib/api'
 
 import { useAuth } from '@/context/AuthContext'
 import { WishlistProvider } from '@/context/WishlistContext'
@@ -41,6 +42,10 @@ function App() {
     setAuthRedirectTo(path)
     setShowAuth(true)
   }
+
+  useEffect(() => {
+    api.get('/healthz', { timeout: 45000 }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (location.hash) {

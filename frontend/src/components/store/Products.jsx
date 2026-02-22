@@ -49,6 +49,9 @@ const fallbackImage = `data:image/svg+xml,${encodeURIComponent(
 
 const formatPrice = (value) => formatBirr(value);
 
+const PRODUCTS_CACHE_KEY = "gmart:products:list:v1";
+const INITIAL_PRODUCTS_LIMIT = 24;
+
 const Products = ({ searchQuery = "", refreshKey = 0 }) => {
     const { addToCart } = useCart();
     const { toggleWishlist, hasInWishlist } = useWishlist();
@@ -65,20 +68,52 @@ const Products = ({ searchQuery = "", refreshKey = 0 }) => {
     useEffect(() => {
         let cancelled = false;
 
+        const readCachedProducts = () => {
+            try {
+                const raw = window.sessionStorage.getItem(PRODUCTS_CACHE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return [];
+                return parsed.map(normalizeProduct).filter((p) => p.id);
+            } catch {
+                return [];
+            }
+        };
+
+        const persistCachedProducts = (list) => {
+            try {
+                window.sessionStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(list));
+            } catch {
+                // ignore cache write failures
+            }
+        };
+
+        const cached = readCachedProducts();
+        if (cached.length) {
+            setProducts(cached);
+            setIsLoading(false);
+        }
+
         (async () => {
-            setIsLoading(true);
+            if (!cached.length) {
+                setIsLoading(true);
+            }
             setLoadError("");
 
             try {
-                const data = await apiListProducts();
+                const data = await apiListProducts({
+                    limit: INITIAL_PRODUCTS_LIMIT,
+                    timeoutMs: 45000,
+                });
                 if (!data?.ok) throw new Error(data?.error || "Failed to load products");
                 const list = Array.isArray(data.products) ? data.products.map(normalizeProduct).filter((p) => p.id) : [];
                 if (cancelled) return;
                 setProducts(list);
+                persistCachedProducts(data.products);
             } catch (err) {
                 if (cancelled) return;
                 setLoadError(toErrorMessage(err, "Failed to load products"));
-                setProducts([]);
+                if (!cached.length) setProducts([]);
             } finally {
                 if (!cancelled) setIsLoading(false);
             }

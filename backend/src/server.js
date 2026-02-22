@@ -72,6 +72,10 @@ export function createServer() {
 
     app.use('/api/v1', apiV1)
 
+    app.get('/healthz', (_req, res) => {
+        res.json({ ok: true, service: 'g-mart-api', ts: Date.now(), uptimeSec: Math.floor(process.uptime()) })
+    })
+
     app.get('/health', (_req, res) => {
         res.json({ ok: true, mongo: getMongoStatus() })
     })
@@ -89,7 +93,7 @@ export function createServer() {
         app.use(express.static(frontendDistPath))
 
         app.get('*', (req, res, next) => {
-            if (req.path.startsWith('/api') || req.path === '/health') {
+            if (req.path.startsWith('/api') || req.path === '/health' || req.path === '/healthz') {
                 return next()
             }
 
