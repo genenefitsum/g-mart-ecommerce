@@ -76,40 +76,7 @@ npm run dev
 npm run dev:api
 ```
 
-Frontend runs on `http://localhost:5173` and backend runs on `http://localhost:4000` by default.
 
-## Useful Commands
-
-```bash
-# Build frontend
-npm run build
-
-# Preview frontend build
-npm run preview
-
-# Frontend lint
-npm run lint
-
-# Backend tests
-npm --workspace backend test
-
-# Seed sample products
-npm --workspace backend run seed:products
-```
-
-## Admin Bootstrap
-
-If you need an admin account for the first time:
-
-1. Register a normal user.
-2. Promote the user role in MongoDB:
-
-```js
-db.users.updateOne(
-  { email: "your-email@example.com" },
-  { $set: { role: "admin" } }
-)
-```
 
 3. Sign out and sign in again.
 
