@@ -431,7 +431,7 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                   </form>
                 ) : (
                   <button
-                    className="p-2 text-gray-800 hover:bg-gray-100 hover:text-white hover:font-light rounded transition"
+                    className="p-2 text-gray-800 hover:bg-gray-100 hover:text-black hover:font-light rounded transition"
                     aria-label="Search"
                     title="Search"
                     onClick={openDesktopSearch}
