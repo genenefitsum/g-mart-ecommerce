@@ -94,9 +94,15 @@ export function AuthProvider({ children }) {
 
       setAccess(data.accessToken)
 
+      if (data?.user) {
+        setUser(data.user)
+        persistAuth({ user: data.user, accessToken: data.accessToken })
+        return { ok: true }
+      }
+
+      // Fallback: older servers may not return user.
       const me = await apiMe()
       if (!me?.ok) throw new Error('Failed to load user')
-
       setUser(me.user)
       persistAuth({ user: me.user, accessToken: data.accessToken })
       return { ok: true }
@@ -120,9 +126,14 @@ export function AuthProvider({ children }) {
 
       setAccess(data.accessToken)
 
+      if (data?.user) {
+        setUser(data.user)
+        persistAuth({ user: data.user, accessToken: data.accessToken })
+        return { ok: true }
+      }
+
       const me = await apiMe()
       if (!me?.ok) throw new Error('Failed to load user')
-
       setUser(me.user)
       persistAuth({ user: me.user, accessToken: data.accessToken })
       return { ok: true }
@@ -146,9 +157,14 @@ export function AuthProvider({ children }) {
 
       setAccess(data.accessToken)
 
+      if (data?.user) {
+        setUser(data.user)
+        persistAuth({ user: data.user, accessToken: data.accessToken })
+        return { ok: true }
+      }
+
       const me = await apiMe()
       if (!me?.ok) throw new Error('Failed to load user')
-
       setUser(me.user)
       persistAuth({ user: me.user, accessToken: data.accessToken })
       return { ok: true }
