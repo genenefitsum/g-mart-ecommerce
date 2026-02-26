@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Search, User, Heart, ShoppingBag, Menu, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, Search, User, Heart, ShoppingBag, Menu, X, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useLocation, useNavigate } from "react-router-dom";
+import { apiListMyProductInterests } from "@/lib/api";
 
 const CATEGORIES_FOR_SEARCH = [
   { id: "categories", name: "Categories", description: "Browse all categories" },
@@ -29,17 +30,34 @@ const navLinks = [
   { name: "Contact", id: "contact" },
 ];
 
+function formatDate(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString();
+}
+
+function formatInterestMode(mode) {
+  return mode === "with_contact" ? "Notify + contact info" : "Notify only";
+}
+
 const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
   const { setIsCartOpen, totalItems } = useCart();
   const { setIsWishlistOpen, totalItems: totalWishlistItems } = useWishlist();
   const { user } = useAuth();
+  const userId = String(user?._id ?? user?.id ?? "").trim();
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
+  const isSeller = String(user?.role ?? "").toLowerCase() === "seller";
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopSearchOpen, setIsDesktopSearchOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(searchQuery);
+  const [sellerInterests, setSellerInterests] = useState([]);
+  const [sellerInterestsLoading, setSellerInterestsLoading] = useState(false);
+  const [sellerInterestsError, setSellerInterestsError] = useState("");
   const searchInputRef = useRef(null);
 
   const openAuth = () => {
@@ -75,6 +93,43 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
     setIsMobileSearchOpen(false);
     navigate("/admin");
   };
+
+  const openMessages = () => {
+    setIsMobileMenuOpen(false);
+    setIsMobileSearchOpen(false);
+    setIsMessagesOpen(true);
+  };
+
+  const loadSellerInterests = useCallback(
+    async ({ withLoader = false } = {}) => {
+      if (!userId || !isSeller) {
+        setSellerInterests([]);
+        setSellerInterestsError("");
+        setSellerInterestsLoading(false);
+        return;
+      }
+
+      if (withLoader) {
+        setSellerInterestsLoading(true);
+      }
+      setSellerInterestsError("");
+
+      try {
+        const data = await apiListMyProductInterests();
+        if (!data?.ok) throw new Error(data?.error || "Failed to load buyer interests");
+        setSellerInterests(Array.isArray(data.interests) ? data.interests : []);
+      } catch (err) {
+        setSellerInterestsError(
+          err?.response?.data?.error || err?.message || "Failed to load buyer interests",
+        );
+      } finally {
+        if (withLoader) {
+          setSellerInterestsLoading(false);
+        }
+      }
+    },
+    [isSeller, userId],
+  );
 
   // Smooth scroll function
   const handleScroll = (id) => {
@@ -148,6 +203,15 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
     };
   }, [isMobileSearchOpen]);
 
+  useEffect(() => {
+    loadSellerInterests({ withLoader: true });
+  }, [loadSellerInterests]);
+
+  useEffect(() => {
+    if (!isMessagesOpen) return;
+    loadSellerInterests();
+  }, [isMessagesOpen, loadSellerInterests]);
+
   const searchText = searchValue.trim().toLowerCase();
 
   const productResults = useMemo(() => {
@@ -165,6 +229,10 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
       return haystack.includes(searchText);
     }).slice(0, 6);
   }, [searchText]);
+
+  const sellerInterestCount = useMemo(() => {
+    return sellerInterests.filter((item) => String(item?.status ?? "").toLowerCase() === "new").length;
+  }, [sellerInterests]);
 
   const setQuery = (next) => {
     setSearchValue(next);
@@ -293,6 +361,24 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
               >
                 <Search size={22} />
               </button>
+
+              {user && isSeller ? (
+                <button
+                  type="button"
+                  className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                  aria-label="Messages"
+                  onClick={openMessages}
+                >
+                  <span className="relative inline-flex">
+                    <MessageCircle size={22} />
+                    {sellerInterestCount > 0 ? (
+                      <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-black text-white text-[10px] leading-4 text-center">
+                        {sellerInterestCount}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              ) : null}
 
               <button
                 type="button"
@@ -455,6 +541,25 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                     </button>
                   ) : null}
 
+                  {isSeller ? (
+                    <button
+                      type="button"
+                      className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                      aria-label="Messages"
+                      title="Messages"
+                      onClick={openMessages}
+                    >
+                      <span className="relative inline-flex">
+                        <MessageCircle size={20} />
+                        {sellerInterestCount > 0 ? (
+                          <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-black text-white text-[10px] leading-4 text-center">
+                            {sellerInterestCount}
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                  ) : null}
+
                   <button
                     className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
                     aria-label="Account"
@@ -611,6 +716,75 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
             </div>
           </div>
         )}
+
+        <Dialog open={isMessagesOpen} onOpenChange={setIsMessagesOpen}>
+          <DialogContent
+            showClose
+            className="z-[71] top-6 w-[min(92vw,720px)] max-w-none translate-y-0 rounded-3xl border border-black/5 bg-white p-0 shadow-[0_30px_80px_rgba(0,0,0,0.12)]"
+            overlayClassName="z-[70] bg-black/20 backdrop-blur-md"
+          >
+            <div className="px-4 py-4 sm:px-5 sm:py-5">
+              <div className="text-base font-semibold text-gray-900">Interested Buyers</div>
+
+              {sellerInterestsLoading ? (
+                <div className="mt-3 text-sm text-gray-600">Loading buyer interest notifications…</div>
+              ) : sellerInterestsError ? (
+                <div className="mt-3 text-sm text-red-600">{sellerInterestsError}</div>
+              ) : sellerInterests.length === 0 ? (
+                <div className="mt-3 text-sm text-gray-600">No buyer interest notifications yet.</div>
+              ) : (
+                <div className="mt-4 grid max-h-[65vh] gap-3 overflow-auto pr-1">
+                  {sellerInterests.map((interest) => (
+                    <div key={interest?._id} className="rounded-xl border border-gray-200 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm font-semibold text-gray-900">{interest?.product?.name || "Product"}</div>
+                        <div className="text-xs text-gray-500">{formatDate(interest?.createdAt)}</div>
+                      </div>
+
+                      <div className="mt-2 grid gap-1 text-sm text-gray-700">
+                        <div>
+                          <span className="text-gray-500">Mode:</span> {formatInterestMode(interest?.mode)}
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Buyer:</span> {interest?.buyer?.name || "Unknown"}
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Buyer email:</span> {interest?.buyer?.email || "—"}
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Phone:</span> {interest?.buyerContact?.phone || "Not provided"}
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Contact email:</span> {interest?.buyerContact?.email || "Not provided"}
+                        </div>
+                        {interest?.buyerContact?.note ? (
+                          <div>
+                            <span className="text-gray-500">Note:</span> {interest.buyerContact.note}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {interest?.product?.id ? (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center px-3 py-2 rounded border border-gray-200 text-gray-900 text-sm hover:bg-gray-100 transition"
+                            onClick={() => {
+                              setIsMessagesOpen(false);
+                              navigate(`/product/${interest.product.id}`);
+                            }}
+                          >
+                            Open product
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </header>
