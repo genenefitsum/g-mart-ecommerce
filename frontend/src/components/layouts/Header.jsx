@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiListMyProductInterests, apiMarkMyProductInterestsRead } from "@/lib/api";
+import { toErrorMessage } from "@/lib/errors";
 
 const CATEGORIES_FOR_SEARCH = [
   { id: "categories", name: "Categories", description: "Browse all categories" },
@@ -119,9 +120,7 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
         if (!data?.ok) throw new Error(data?.error || "Failed to load buyer interests");
         setSellerInterests(Array.isArray(data.interests) ? data.interests : []);
       } catch (err) {
-        setSellerInterestsError(
-          err?.response?.data?.error || err?.message || "Failed to load buyer interests",
-        );
+        setSellerInterestsError(toErrorMessage(err, "Failed to load buyer interests"));
       } finally {
         if (withLoader) {
           setSellerInterestsLoading(false);

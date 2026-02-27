@@ -10,6 +10,7 @@ import {
   apiListOrders,
   apiUpdateMe,
 } from '@/lib/api'
+import { toErrorMessage } from '@/lib/errors'
 import { formatBirr } from '@/lib/utils'
 
 import { Button } from '@/components/ui/button'
@@ -83,7 +84,7 @@ export default function Account({ onRequireAuth }) {
           }
         } catch (err) {
           if (!cancelled) {
-            setOrdersError(err?.response?.data?.error || err?.message || 'Failed to load orders')
+            setOrdersError(toErrorMessage(err, 'Failed to load orders'))
           }
         } finally {
           if (!cancelled) {
@@ -115,9 +116,7 @@ export default function Account({ onRequireAuth }) {
           }
         } catch (err) {
           if (!cancelled) {
-            setMyProductsError(
-              err?.response?.data?.error || err?.message || 'Failed to load your products',
-            )
+            setMyProductsError(toErrorMessage(err, 'Failed to load your products'))
           }
         } finally {
           if (!cancelled) {
@@ -156,7 +155,7 @@ export default function Account({ onRequireAuth }) {
       setUser(data.user)
       setProfileStatus('Profile updated.')
     } catch (err) {
-      setProfileError(err?.response?.data?.error || err?.message || 'Failed to update profile')
+      setProfileError(toErrorMessage(err, 'Failed to update profile'))
     } finally {
       setProfileSubmitting(false)
     }
@@ -194,7 +193,7 @@ export default function Account({ onRequireAuth }) {
       await logout()
       navigate('/')
     } catch (err) {
-      setPasswordError(err?.response?.data?.error || err?.message || 'Failed to change password')
+      setPasswordError(toErrorMessage(err, 'Failed to change password'))
     } finally {
       setPasswordSubmitting(false)
     }
@@ -225,7 +224,7 @@ export default function Account({ onRequireAuth }) {
       await logout()
       navigate('/')
     } catch (err) {
-      setDeleteError(err?.response?.data?.error || err?.message || 'Failed to delete account')
+      setDeleteError(toErrorMessage(err, 'Failed to delete account'))
     } finally {
       setDeleteSubmitting(false)
     }
