@@ -325,9 +325,18 @@ productsRouter.post('/:productId/interest', requireAuth, async (req, res, next) 
       .lean()
 
     if (duplicate) {
-      return res.status(409).json({
-        ok: false,
-        error: 'You already sent this interest recently. Please try again later.',
+      if (String(duplicate.status ?? '').toLowerCase() !== 'new') {
+        await ProductInterest.updateOne(
+          { _id: duplicate._id, sellerUserId },
+          { $set: { status: 'new' } },
+        )
+      }
+
+      return res.status(200).json({
+        ok: true,
+        duplicate: true,
+        message: 'Interest was already sent recently.',
+        interestId: String(duplicate._id),
       })
     }
 
@@ -387,6 +396,48 @@ productsRouter.get('/interests/mine', requireAuth, async (req, res, next) => {
     return res.json({
       ok: true,
       interests: interests.map(serializeProductInterest),
+    })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// POST /api/v1/products/interests/mark-read
+// body: { interestIds?: string[] }
+productsRouter.post('/interests/mark-read', requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const sellerUserId = String(req.auth?.userId ?? '').trim()
+    if (!sellerUserId) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
+    const rawIds = Array.isArray(req.body?.interestIds) ? req.body.interestIds : []
+    const interestIds = Array.from(
+      new Set(
+        rawIds
+          .map((value) => String(value ?? '').trim())
+          .filter((value) => mongoose.Types.ObjectId.isValid(value)),
+      ),
+    )
+
+    const filter = {
+      sellerUserId,
+      status: 'new',
+    }
+
+    if (interestIds.length) {
+      filter._id = { $in: interestIds }
+    }
+
+    const updated = await ProductInterest.updateMany(filter, {
+      $set: { status: 'read' },
+    })
+
+    return res.json({
+      ok: true,
+      markedCount: Number(updated?.modifiedCount ?? 0),
     })
   } catch (err) {
     return next(err)

@@ -216,6 +216,14 @@ export async function apiListMyProductInterests() {
   return res.data
 }
 
+export async function apiMarkMyProductInterestsRead(interestIds = []) {
+  const payload = {
+    interestIds: Array.isArray(interestIds) ? interestIds : [],
+  }
+  const res = await api.post('/products/interests/mark-read', payload)
+  return res.data
+}
+
 export async function apiGetWishlist() {
   const res = await api.get('/wishlist')
   return res.data

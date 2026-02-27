@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useLocation, useNavigate } from "react-router-dom";
-import { apiListMyProductInterests } from "@/lib/api";
+import { apiListMyProductInterests, apiMarkMyProductInterestsRead } from "@/lib/api";
 
 const CATEGORIES_FOR_SEARCH = [
   { id: "categories", name: "Categories", description: "Browse all categories" },
@@ -230,9 +230,46 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
     }).slice(0, 6);
   }, [searchText]);
 
-  const sellerInterestCount = useMemo(() => {
-    return sellerInterests.filter((item) => String(item?.status ?? "").toLowerCase() === "new").length;
+  const unseenInterestIds = useMemo(() => {
+    return sellerInterests
+      .filter((item) => {
+        const status = String(item?.status ?? "").toLowerCase();
+        return status === "new";
+      })
+      .map((item) => String(item?._id ?? "").trim())
+      .filter(Boolean);
   }, [sellerInterests]);
+
+  const unseenInterestCount = unseenInterestIds.length;
+  const shouldShowMessagesIcon = Boolean(user && isSeller && unseenInterestCount > 0);
+
+  useEffect(() => {
+    if (!isMessagesOpen || !isSeller || unseenInterestIds.length === 0) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const data = await apiMarkMyProductInterestsRead(unseenInterestIds);
+        if (!data?.ok || cancelled) return;
+
+        const seenIds = new Set(unseenInterestIds);
+        setSellerInterests((current) =>
+          current.map((item) => {
+            const id = String(item?._id ?? "").trim();
+            if (!id || !seenIds.has(id)) return item;
+            return { ...item, status: "read" };
+          }),
+        );
+      } catch {
+        // no-op: message modal remains usable even if read-state sync fails
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isMessagesOpen, isSeller, unseenInterestIds]);
 
   const setQuery = (next) => {
     setSearchValue(next);
@@ -362,18 +399,18 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                 <Search size={22} />
               </button>
 
-              {user && isSeller ? (
+              {shouldShowMessagesIcon ? (
                 <button
                   type="button"
-                  className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                  className="inline-flex items-center justify-center p-2 text-gray-800 hover:bg-gray-100 rounded transition"
                   aria-label="Messages"
                   onClick={openMessages}
                 >
-                  <span className="relative inline-flex">
+                  <span className="relative flex items-center">
                     <MessageCircle size={22} />
-                    {sellerInterestCount > 0 ? (
+                    {unseenInterestCount > 0 ? (
                       <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-black text-white text-[10px] leading-4 text-center">
-                        {sellerInterestCount}
+                        {unseenInterestCount}
                       </span>
                     ) : null}
                   </span>
@@ -541,19 +578,19 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                     </button>
                   ) : null}
 
-                  {isSeller ? (
+                  {shouldShowMessagesIcon ? (
                     <button
                       type="button"
-                      className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                      className="inline-flex items-center justify-center p-2 text-gray-800 hover:bg-gray-100 rounded transition"
                       aria-label="Messages"
                       title="Messages"
                       onClick={openMessages}
                     >
-                      <span className="relative inline-flex">
+                      <span className="relative flex items-center">
                         <MessageCircle size={20} />
-                        {sellerInterestCount > 0 ? (
+                        {unseenInterestCount > 0 ? (
                           <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-black text-white text-[10px] leading-4 text-center">
-                            {sellerInterestCount}
+                            {unseenInterestCount}
                           </span>
                         ) : null}
                       </span>

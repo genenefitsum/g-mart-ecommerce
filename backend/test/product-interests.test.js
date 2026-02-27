@@ -93,7 +93,7 @@ test('product interests: buyer can send notify_only and with_contact', async () 
   assert.ok(withContactRes.body?.interestId)
 })
 
-test('product interests: duplicate mode for same product is blocked within 24h', async () => {
+test('product interests: duplicate mode for same product is idempotent within 24h', async () => {
   const app = await makeApp()
   const http = agent(app)
 
@@ -126,8 +126,9 @@ test('product interests: duplicate mode for same product is blocked within 24h',
     .set('Authorization', `Bearer ${buyerReg.body.accessToken}`)
     .send({ mode: 'notify_only' })
 
-  assert.equal(duplicateRes.status, 409)
-  assert.equal(duplicateRes.body?.ok, false)
+  assert.equal(duplicateRes.status, 200)
+  assert.equal(duplicateRes.body?.ok, true)
+  assert.equal(duplicateRes.body?.duplicate, true)
 })
 
 test('product interests: seller inbox lists only own product interests', async () => {
@@ -189,4 +190,124 @@ test('product interests: seller inbox lists only own product interests', async (
   assert.equal(inboxA.body.interests.length, 1)
   assert.equal(inboxA.body.interests[0]?.product?.name, 'Seller A Product')
   assert.equal(inboxA.body.interests[0]?.buyer?.name, 'Buyer')
+})
+
+test('product interests: seller can mark unseen interests as read', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const sellerReg = await registerAndGetToken(http, {
+    name: 'Seller',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(sellerReg.status, 201)
+
+  const buyerReg = await registerAndGetToken(http, {
+    name: 'Buyer',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(buyerReg.status, 201)
+
+  const sellerUser = await getCurrentUser(http, sellerReg.body.accessToken)
+  const product = await createSellerProduct({ sellerUserId: sellerUser.id })
+
+  const sendRes = await http
+    .post(`/api/v1/products/${product._id}/interest`)
+    .set('Authorization', `Bearer ${buyerReg.body.accessToken}`)
+    .send({
+      mode: 'with_contact',
+      buyerContact: { email: 'buyer@example.com' },
+    })
+
+  assert.equal(sendRes.status, 201)
+  assert.equal(sendRes.body?.ok, true)
+  assert.ok(sendRes.body?.interestId)
+
+  const inboxBefore = await http
+    .get('/api/v1/products/interests/mine')
+    .set('Authorization', `Bearer ${sellerReg.body.accessToken}`)
+
+  assert.equal(inboxBefore.status, 200)
+  assert.equal(inboxBefore.body?.ok, true)
+  assert.equal(Array.isArray(inboxBefore.body?.interests), true)
+  assert.equal(inboxBefore.body.interests.length, 1)
+  assert.equal(inboxBefore.body.interests[0]?.status, 'new')
+
+  const markReadRes = await http
+    .post('/api/v1/products/interests/mark-read')
+    .set('Authorization', `Bearer ${sellerReg.body.accessToken}`)
+    .send({ interestIds: [sendRes.body.interestId] })
+
+  assert.equal(markReadRes.status, 200)
+  assert.equal(markReadRes.body?.ok, true)
+  assert.equal(markReadRes.body?.markedCount, 1)
+
+  const inboxAfter = await http
+    .get('/api/v1/products/interests/mine')
+    .set('Authorization', `Bearer ${sellerReg.body.accessToken}`)
+
+  assert.equal(inboxAfter.status, 200)
+  assert.equal(inboxAfter.body?.ok, true)
+  assert.equal(Array.isArray(inboxAfter.body?.interests), true)
+  assert.equal(inboxAfter.body.interests.length, 1)
+  assert.equal(inboxAfter.body.interests[0]?.status, 'read')
+})
+
+test('product interests: duplicate resend re-opens read notification', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const sellerReg = await registerAndGetToken(http, {
+    name: 'Seller',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(sellerReg.status, 201)
+
+  const buyerReg = await registerAndGetToken(http, {
+    name: 'Buyer',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(buyerReg.status, 201)
+
+  const sellerUser = await getCurrentUser(http, sellerReg.body.accessToken)
+  const product = await createSellerProduct({ sellerUserId: sellerUser.id })
+
+  const firstSend = await http
+    .post(`/api/v1/products/${product._id}/interest`)
+    .set('Authorization', `Bearer ${buyerReg.body.accessToken}`)
+    .send({ mode: 'notify_only' })
+
+  assert.equal(firstSend.status, 201)
+  assert.equal(firstSend.body?.ok, true)
+
+  const markReadRes = await http
+    .post('/api/v1/products/interests/mark-read')
+    .set('Authorization', `Bearer ${sellerReg.body.accessToken}`)
+    .send({ interestIds: [firstSend.body.interestId] })
+
+  assert.equal(markReadRes.status, 200)
+  assert.equal(markReadRes.body?.ok, true)
+
+  const duplicateSend = await http
+    .post(`/api/v1/products/${product._id}/interest`)
+    .set('Authorization', `Bearer ${buyerReg.body.accessToken}`)
+    .send({ mode: 'notify_only' })
+
+  assert.equal(duplicateSend.status, 200)
+  assert.equal(duplicateSend.body?.ok, true)
+  assert.equal(duplicateSend.body?.duplicate, true)
+
+  const inboxAfter = await http
+    .get('/api/v1/products/interests/mine')
+    .set('Authorization', `Bearer ${sellerReg.body.accessToken}`)
+
+  assert.equal(inboxAfter.status, 200)
+  assert.equal(inboxAfter.body?.ok, true)
+  assert.equal(Array.isArray(inboxAfter.body?.interests), true)
+  assert.equal(inboxAfter.body.interests.length, 1)
+  assert.equal(inboxAfter.body.interests[0]?.status, 'new')
 })

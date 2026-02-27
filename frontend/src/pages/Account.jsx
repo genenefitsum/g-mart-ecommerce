@@ -6,7 +6,6 @@ import { useAuth } from '@/context/AuthContext'
 import {
   apiChangePassword,
   apiDeleteAccount,
-  apiListMyProductInterests,
   apiListMyProducts,
   apiListOrders,
   apiUpdateMe,
@@ -36,10 +35,6 @@ function getProductId(value) {
   return ''
 }
 
-function formatInterestMode(mode) {
-  return mode === 'with_contact' ? 'Notify + contact info' : 'Notify only'
-}
-
 export default function Account({ onRequireAuth }) {
   const navigate = useNavigate()
   const { user, logout, setUser } = useAuth()
@@ -56,10 +51,6 @@ export default function Account({ onRequireAuth }) {
   const [myProducts, setMyProducts] = useState([])
   const [myProductsLoading, setMyProductsLoading] = useState(false)
   const [myProductsError, setMyProductsError] = useState('')
-
-  const [myInterests, setMyInterests] = useState([])
-  const [myInterestsLoading, setMyInterestsLoading] = useState(false)
-  const [myInterestsError, setMyInterestsError] = useState('')
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -97,40 +88,6 @@ export default function Account({ onRequireAuth }) {
         } finally {
           if (!cancelled) {
             setOrdersLoading(false)
-          }
-        }
-      })()
-    }
-
-    return () => {
-      cancelled = true
-    }
-  }, [user])
-
-  useEffect(() => {
-    let cancelled = false
-
-    if (user) {
-      setMyInterestsError('')
-      setMyInterestsLoading(true)
-
-      ;(async () => {
-        try {
-          const data = await apiListMyProductInterests()
-          if (!data?.ok) throw new Error(data?.error || 'Failed to load buyer interests')
-
-          if (!cancelled) {
-            setMyInterests(Array.isArray(data.interests) ? data.interests : [])
-          }
-        } catch (err) {
-          if (!cancelled) {
-            setMyInterestsError(
-              err?.response?.data?.error || err?.message || 'Failed to load buyer interests',
-            )
-          }
-        } finally {
-          if (!cancelled) {
-            setMyInterestsLoading(false)
           }
         }
       })()
@@ -423,68 +380,6 @@ export default function Account({ onRequireAuth }) {
                       View product
                     </Button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card className="rounded-2xl border border-gray-200 p-5">
-          <div className="text-base font-semibold text-gray-900">Interested Buyers</div>
-
-          {myInterestsLoading ? (
-            <div className="mt-3 text-sm text-gray-600">Loading buyer interest notifications…</div>
-          ) : myInterestsError ? (
-            <div className="mt-3 text-sm text-red-600">{myInterestsError}</div>
-          ) : myInterests.length === 0 ? (
-            <div className="mt-3 text-sm text-gray-600">No buyer interest notifications yet.</div>
-          ) : (
-            <div className="mt-4 grid gap-3">
-              {myInterests.map((interest) => (
-                <div key={interest._id} className="rounded-xl border border-gray-200 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-sm font-semibold text-gray-900">
-                      {interest?.product?.name || 'Product'}
-                    </div>
-                    <div className="text-xs text-gray-500">{formatDate(interest?.createdAt)}</div>
-                  </div>
-
-                  <div className="mt-2 grid gap-1 text-sm text-gray-700">
-                    <div>
-                      <span className="text-gray-500">Mode:</span> {formatInterestMode(interest?.mode)}
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Buyer:</span> {interest?.buyer?.name || 'Unknown'}
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Buyer email:</span> {interest?.buyer?.email || '—'}
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Phone:</span>{' '}
-                      {interest?.buyerContact?.phone || 'Not provided'}
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Contact email:</span>{' '}
-                      {interest?.buyerContact?.email || 'Not provided'}
-                    </div>
-                    {interest?.buyerContact?.note ? (
-                      <div>
-                        <span className="text-gray-500">Note:</span> {interest.buyerContact.note}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {interest?.product?.id ? (
-                    <div className="mt-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => navigate(`/product/${interest.product.id}`)}
-                      >
-                        Open product
-                      </Button>
-                    </div>
-                  ) : null}
                 </div>
               ))}
             </div>
