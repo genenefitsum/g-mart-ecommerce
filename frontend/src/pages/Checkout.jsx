@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext'
 import { apiCreateOrder, apiGetOrderPaymentRecipient, apiUploadOrderPaymentProof } from '@/lib/api'
 import { toErrorMessage } from '@/lib/errors'
 import { formatBirr } from '@/lib/utils'
+import { requestSignIn } from '@/lib/authGate'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,6 +40,12 @@ export default function Checkout() {
       .filter((it) => it?.id && it?.quantity)
       .map((it) => ({ productId: String(it.id), quantity: Number(it.quantity) }))
   }, [items])
+
+  useEffect(() => {
+    if (!user) {
+      requestSignIn({ redirectTo: '/checkout' })
+    }
+  }, [user])
 
   useEffect(() => {
     let cancelled = false
@@ -94,7 +101,7 @@ export default function Checkout() {
     setSuccessOrderId('')
 
     if (!user) {
-      setError('Please sign in to checkout.')
+      requestSignIn({ redirectTo: '/checkout' })
       return
     }
 

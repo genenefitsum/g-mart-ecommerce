@@ -68,6 +68,12 @@ export default function Account({ onRequireAuth }) {
   }, [user?.name])
 
   useEffect(() => {
+    if (!user && typeof onRequireAuth === 'function') {
+      onRequireAuth()
+    }
+  }, [onRequireAuth, user])
+
+  useEffect(() => {
     let cancelled = false
 
     if (user) {

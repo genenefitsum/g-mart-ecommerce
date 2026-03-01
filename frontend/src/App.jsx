@@ -1,5 +1,5 @@
 // import './App.css';
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/layouts/Header.jsx'
 import HeroSection from './components/store/Hero.jsx'
@@ -19,6 +19,7 @@ import Admin from './pages/Admin.jsx'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
+import { onAuthRequired, requestSignIn } from '@/lib/authGate'
 
 import { useAuth } from '@/context/AuthContext'
 import { WishlistProvider } from '@/context/WishlistContext'
@@ -32,6 +33,9 @@ function App() {
   const { user, isLoading } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const openAuth = useCallback((redirectTo = '') => {
+    requestSignIn({ redirectTo })
+  }, [])
 
   const requireAuthThen = (path) => {
     if (user) {
@@ -42,6 +46,18 @@ function App() {
     setAuthRedirectTo(path)
     setShowAuth(true)
   }
+
+  useEffect(() => {
+    return onAuthRequired(({ redirectTo }) => {
+      if (user) return
+
+      const fallbackPath = `${location.pathname}${location.search}${location.hash}`
+      const nextPath = String(redirectTo ?? '').trim() || fallbackPath
+
+      setAuthRedirectTo(nextPath)
+      setShowAuth(true)
+    })
+  }, [location.hash, location.pathname, location.search, user])
 
   useEffect(() => {
     api.get('/healthz', { timeout: 45000 }).catch(() => {})
@@ -87,11 +103,11 @@ function App() {
   return (
     
     <>
-      <WishlistProvider onRequireAuth={() => setShowAuth(true)}>
+      <WishlistProvider onRequireAuth={openAuth}>
         <Header
           searchQuery={searchQuery}
           onSearch={setSearchQuery}
-          onAuthOpen={() => setShowAuth(true)}
+          onAuthOpen={openAuth}
         />
 
         <Routes>
@@ -108,7 +124,7 @@ function App() {
 
                 <SellProduct
                   onCreated={() => setProductsRefreshKey((k) => k + 1)}
-                  onRequireAuth={() => setShowAuth(true)}
+                  onRequireAuth={openAuth}
                 />
               </>
             }
@@ -121,7 +137,7 @@ function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route
             path="/account"
-            element={<Account onRequireAuth={() => setShowAuth(true)} />}
+            element={<Account onRequireAuth={openAuth} />}
           />
           <Route
             path="/admin"

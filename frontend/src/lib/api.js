@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { requestSignIn } from '@/lib/authGate'
 
 function normalizeApiBaseUrl(raw) {
   if (!raw) return null
@@ -97,6 +98,10 @@ api.interceptors.response.use(
       } catch {
         // fall through
       }
+    }
+
+    if (status === 401) {
+      requestSignIn()
     }
 
     return Promise.reject(error)

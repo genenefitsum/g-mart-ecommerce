@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toErrorMessage } from '@/lib/errors'
 import { formatBirr } from '@/lib/utils'
+import { requestSignIn } from '@/lib/authGate'
 
 const fallbackImage = `data:image/svg+xml,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
@@ -310,7 +311,7 @@ export default function ProductDetails() {
     if (!product) return
 
     if (!user) {
-      navigate('/account')
+      requestSignIn({ redirectTo: `/product/${product.id}` })
       return
     }
 
@@ -359,7 +360,7 @@ export default function ProductDetails() {
   const submitRating = async () => {
     if (!product?.id) return
     if (!user) {
-      navigate('/account')
+      requestSignIn({ redirectTo: `/product/${product.id}` })
       return
     }
 
@@ -410,7 +411,7 @@ export default function ProductDetails() {
     const sellerUserId = String(product?.sellerUserId ?? '').trim()
     if (!sellerUserId) return
     if (!user) {
-      navigate('/account')
+      requestSignIn({ redirectTo: `/product/${product.id}` })
       return
     }
 
