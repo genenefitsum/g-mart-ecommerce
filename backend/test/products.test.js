@@ -71,6 +71,8 @@ test('products: create (auth) then fetch by id', async () => {
   assert.equal(getRes.status, 200)
   assert.equal(getRes.body?.ok, true)
   assert.equal(String(getRes.body?.product?._id), productId)
+  assert.equal(getRes.body?.product?.rating, 0)
+  assert.equal(getRes.body?.product?.reviewCount, 0)
 
   const meRes = await http
     .get('/api/v1/auth/me')

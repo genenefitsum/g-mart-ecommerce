@@ -152,8 +152,15 @@ function hasCartPaymentInfo(product) {
 
 function serializeProduct(product) {
   const plain = product && typeof product === 'object' ? product : {}
+  const ratingAverage = Number(plain.ratingAverage ?? 0)
+  const ratingCount = Number(plain.ratingCount ?? 0)
+
   return {
     ...plain,
+    ratingAverage: Number.isFinite(ratingAverage) ? Number(ratingAverage.toFixed(1)) : 0,
+    ratingCount: Number.isFinite(ratingCount) ? Math.max(0, Math.floor(ratingCount)) : 0,
+    rating: Number.isFinite(ratingAverage) ? Number(ratingAverage.toFixed(1)) : 0,
+    reviewCount: Number.isFinite(ratingCount) ? Math.max(0, Math.floor(ratingCount)) : 0,
     canAddToCart: hasCartPaymentInfo(plain),
   }
 }
@@ -223,7 +230,7 @@ productsRouter.get('/', async (req, res, next) => {
     }
 
     const products = await Product.find(filter)
-      .select('_id name category price imageUrl isAdminProduct sellerUserId createdAt')
+      .select('_id name category price imageUrl isAdminProduct sellerUserId ratingAverage ratingCount createdAt')
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean()
@@ -245,7 +252,7 @@ productsRouter.get('/mine', requireAuth, async (req, res, next) => {
     }
 
     const products = await Product.find({ sellerUserId: userId })
-      .select('_id name category price description contactPhone imageUrl images sellerUserId isAdminProduct createdAt updatedAt')
+      .select('_id name category price description contactPhone imageUrl images sellerUserId isAdminProduct ratingAverage ratingCount createdAt updatedAt')
       .sort({ createdAt: -1 })
       .limit(200)
       .lean()

@@ -17,6 +17,9 @@ const CATEGORY_ID_TO_NAME = {
 
 const normalizeProduct = (product) => {
   const id = String(product?._id ?? product?.id ?? "");
+  const ratingValue = Number(product?.rating ?? product?.ratingAverage ?? 0);
+  const reviewCountValue = Number(product?.reviewCount ?? product?.ratingCount ?? 0);
+
   return {
     id,
     name: product?.name ?? "",
@@ -24,8 +27,8 @@ const normalizeProduct = (product) => {
     price: Number(product?.price ?? 0),
     originalPrice:
       typeof product?.originalPrice === "number" ? product.originalPrice : undefined,
-    rating: typeof product?.rating === "number" ? product.rating : 0,
-    reviewCount: typeof product?.reviewCount === "number" ? product.reviewCount : 0,
+    rating: Number.isFinite(ratingValue) ? ratingValue : 0,
+    reviewCount: Number.isFinite(reviewCountValue) ? Math.max(0, Math.floor(reviewCountValue)) : 0,
     featured: Boolean(product?.featured),
     badge: product?.badge ?? undefined,
     image: resolveAssetUrl(product?.imageUrl ?? product?.image ?? ""),

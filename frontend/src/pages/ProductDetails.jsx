@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Star, Trash2 } from 'lucide-react'
 
 import {
   apiCreateProductInterest,
   apiDeleteProduct,
+  apiGetMyProductRating,
+  apiGetProductRatingSummary,
   apiGetProduct,
+  apiUpsertProductRating,
   apiUpdateProduct,
   resolveAssetUrl,
 } from '@/lib/api'
@@ -45,6 +48,8 @@ function normalizeProduct(product) {
     image: images[0] ?? '',
     images,
     sellerUserId: String(product?.sellerUserId ?? ''),
+    rating: Number(product?.rating ?? product?.ratingAverage ?? 0),
+    reviewCount: Number(product?.reviewCount ?? product?.ratingCount ?? 0),
     canAddToCart:
       typeof product?.canAddToCart === 'boolean'
         ? product.canAddToCart
@@ -80,6 +85,11 @@ export default function ProductDetails() {
   const [interestSubmitting, setInterestSubmitting] = useState(false)
   const [interestStatus, setInterestStatus] = useState('')
   const [interestError, setInterestError] = useState('')
+  const [selectedRating, setSelectedRating] = useState(0)
+  const [myRating, setMyRating] = useState(0)
+  const [ratingBusy, setRatingBusy] = useState(false)
+  const [ratingError, setRatingError] = useState('')
+  const [ratingStatus, setRatingStatus] = useState('')
 
   const isOwnerOrAdmin = useMemo(() => {
     if (!user || !product) return false
@@ -125,6 +135,55 @@ export default function ProductDetails() {
   useEffect(() => {
     setSelectedImageIndex(0)
   }, [product?.id])
+
+  useEffect(() => {
+    setSelectedRating(0)
+    setMyRating(0)
+    setRatingError('')
+    setRatingStatus('')
+  }, [product?.id])
+
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      if (!product?.id) return
+
+      try {
+        const summary = await apiGetProductRatingSummary(product.id)
+        if (!cancelled && summary?.ok) {
+          setProduct((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  rating: Number(summary.rating ?? 0),
+                  reviewCount: Number(summary.reviewCount ?? 0),
+                }
+              : prev,
+          )
+        }
+      } catch {
+        // ignore summary failures on initial page load
+      }
+
+      if (!user) return
+
+      try {
+        const mine = await apiGetMyProductRating(product.id)
+        if (!cancelled && mine?.ok && mine?.hasRating) {
+          const stars = Number(mine.stars ?? 0)
+          setMyRating(stars)
+          setSelectedRating(stars)
+        }
+      } catch {
+        // ignore if no rating yet or user is not eligible
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [product?.id, user])
 
   const activeImage = product?.images?.[selectedImageIndex] || product?.image || fallbackImage
 
@@ -239,6 +298,48 @@ export default function ProductDetails() {
       setInterestSubmitting(false)
     }
   }
+
+  const submitRating = async () => {
+    if (!product?.id) return
+    if (!user) {
+      navigate('/account')
+      return
+    }
+
+    setRatingBusy(true)
+    setRatingError('')
+    setRatingStatus('')
+
+    try {
+      const stars = Number(selectedRating)
+      const data = await apiUpsertProductRating(product.id, stars)
+      if (!data?.ok) throw new Error(data?.error || 'Failed to save rating')
+
+      setMyRating(stars)
+      setProduct((prev) =>
+        prev
+          ? {
+              ...prev,
+              rating: Number(data.rating ?? prev.rating ?? 0),
+              reviewCount: Number(data.reviewCount ?? prev.reviewCount ?? 0),
+            }
+          : prev,
+      )
+
+      setRatingStatus(data.created ? 'Rating submitted.' : 'Rating updated.')
+    } catch (err) {
+      setRatingError(toErrorMessage(err, 'Failed to save rating'))
+    } finally {
+      setRatingBusy(false)
+    }
+  }
+
+  const canRate = useMemo(() => {
+    if (!product) return false
+    if (!user) return true
+    if (isOwnerOrAdmin) return false
+    return isSellerProduct
+  }, [isOwnerOrAdmin, isSellerProduct, product, user])
 
   if (isLoading) {
     return (
@@ -460,8 +561,68 @@ export default function ProductDetails() {
             {product.name}
           </h1>
 
+          <div className="mt-2 flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-1 text-amber-500">
+              <Star className="h-4 w-4 fill-amber-500" />
+              <span className="font-semibold text-gray-900">
+                {Number(product.rating ?? 0).toFixed(1)}
+              </span>
+            </div>
+            <span className="text-gray-500">({Number(product.reviewCount ?? 0)})</span>
+          </div>
+
           <div className="mt-3 text-lg font-semibold text-gray-900">
             {formatBirr(product.price)}
+          </div>
+
+          <div className="mt-5 rounded-xl border border-gray-200 p-4">
+            <div className="text-sm font-semibold text-gray-900">Rate this product</div>
+
+            <div className="mt-2 flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((value) => {
+                const active = value <= (selectedRating || myRating)
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className="rounded p-1 text-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!canRate || ratingBusy}
+                    onClick={() => {
+                      setSelectedRating(value)
+                      setRatingError('')
+                      setRatingStatus('')
+                    }}
+                    aria-label={`Rate ${value} star${value === 1 ? '' : 's'}`}
+                  >
+                    <Star className={`h-5 w-5 ${active ? 'fill-amber-500' : ''}`} />
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="mt-3 flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!canRate || ratingBusy || selectedRating < 1}
+                onClick={submitRating}
+              >
+                {ratingBusy ? 'Saving…' : myRating ? 'Update rating' : 'Submit rating'}
+              </Button>
+
+              {!user ? (
+                <span className="text-xs text-gray-500">Sign in to rate.</span>
+              ) : null}
+              {user && isOwnerOrAdmin ? (
+                <span className="text-xs text-gray-500">You cannot rate your own product.</span>
+              ) : null}
+              {user && !isOwnerOrAdmin && !isSellerProduct ? (
+                <span className="text-xs text-gray-500">Rating is available for seller listings.</span>
+              ) : null}
+            </div>
+
+            {ratingStatus ? <div className="mt-2 text-sm text-green-700">{ratingStatus}</div> : null}
+            {ratingError ? <div className="mt-2 text-sm text-red-600">{ratingError}</div> : null}
           </div>
 
           <div className="mt-5">

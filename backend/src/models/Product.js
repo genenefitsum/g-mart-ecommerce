@@ -64,6 +64,17 @@ const productSchema = new Schema(
 			default: false,
 			index: true,
 		},
+		ratingAverage: {
+			type: Number,
+			default: 0,
+			min: 0,
+			max: 5,
+		},
+		ratingCount: {
+			type: Number,
+			default: 0,
+			min: 0,
+		},
 	},
 	{ timestamps: true },
 )
