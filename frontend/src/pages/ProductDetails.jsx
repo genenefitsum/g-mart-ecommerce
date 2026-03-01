@@ -6,9 +6,12 @@ import {
   apiCreateProductInterest,
   apiDeleteProduct,
   apiGetMyProductRating,
+  apiGetMySellerRating,
   apiGetProductRatingSummary,
+  apiGetSellerRatingSummary,
   apiGetProduct,
   apiUpsertProductRating,
+  apiUpsertSellerRating,
   apiUpdateProduct,
   resolveAssetUrl,
 } from '@/lib/api'
@@ -90,6 +93,13 @@ export default function ProductDetails() {
   const [ratingBusy, setRatingBusy] = useState(false)
   const [ratingError, setRatingError] = useState('')
   const [ratingStatus, setRatingStatus] = useState('')
+  const [sellerRating, setSellerRating] = useState(0)
+  const [sellerReviewCount, setSellerReviewCount] = useState(0)
+  const [selectedSellerRating, setSelectedSellerRating] = useState(0)
+  const [mySellerRating, setMySellerRating] = useState(0)
+  const [sellerRatingBusy, setSellerRatingBusy] = useState(false)
+  const [sellerRatingError, setSellerRatingError] = useState('')
+  const [sellerRatingStatus, setSellerRatingStatus] = useState('')
 
   const isOwnerOrAdmin = useMemo(() => {
     if (!user || !product) return false
@@ -144,6 +154,15 @@ export default function ProductDetails() {
   }, [product?.id])
 
   useEffect(() => {
+    setSellerRating(0)
+    setSellerReviewCount(0)
+    setSelectedSellerRating(0)
+    setMySellerRating(0)
+    setSellerRatingError('')
+    setSellerRatingStatus('')
+  }, [product?.sellerUserId])
+
+  useEffect(() => {
     let cancelled = false
 
     ;(async () => {
@@ -184,6 +203,42 @@ export default function ProductDetails() {
       cancelled = true
     }
   }, [product?.id, user])
+
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      const sellerUserId = String(product?.sellerUserId ?? '').trim()
+      if (!sellerUserId) return
+
+      try {
+        const summary = await apiGetSellerRatingSummary(sellerUserId)
+        if (!cancelled && summary?.ok) {
+          setSellerRating(Number(summary.rating ?? 0))
+          setSellerReviewCount(Number(summary.reviewCount ?? 0))
+        }
+      } catch {
+        // ignore summary load failures
+      }
+
+      if (!user) return
+
+      try {
+        const mine = await apiGetMySellerRating(sellerUserId)
+        if (!cancelled && mine?.ok && mine?.hasRating) {
+          const stars = Number(mine.stars ?? 0)
+          setMySellerRating(stars)
+          setSelectedSellerRating(stars)
+        }
+      } catch {
+        // ignore if no rating yet or not eligible
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [product?.sellerUserId, user])
 
   const activeImage = product?.images?.[selectedImageIndex] || product?.image || fallbackImage
 
@@ -340,6 +395,42 @@ export default function ProductDetails() {
     if (isOwnerOrAdmin) return false
     return isSellerProduct
   }, [isOwnerOrAdmin, isSellerProduct, product, user])
+
+  const canRateSeller = useMemo(() => {
+    if (!product) return false
+    if (!String(product.sellerUserId ?? '').trim()) return false
+    if (!user) return true
+    if (isOwnerOrAdmin) return false
+    return isSellerProduct
+  }, [isOwnerOrAdmin, isSellerProduct, product, user])
+
+  const submitSellerRating = async () => {
+    const sellerUserId = String(product?.sellerUserId ?? '').trim()
+    if (!sellerUserId) return
+    if (!user) {
+      navigate('/account')
+      return
+    }
+
+    setSellerRatingBusy(true)
+    setSellerRatingError('')
+    setSellerRatingStatus('')
+
+    try {
+      const stars = Number(selectedSellerRating)
+      const data = await apiUpsertSellerRating(sellerUserId, stars)
+      if (!data?.ok) throw new Error(data?.error || 'Failed to save seller rating')
+
+      setMySellerRating(stars)
+      setSellerRating(Number(data.rating ?? sellerRating))
+      setSellerReviewCount(Number(data.reviewCount ?? sellerReviewCount))
+      setSellerRatingStatus(data.created ? 'Seller rating submitted.' : 'Seller rating updated.')
+    } catch (err) {
+      setSellerRatingError(toErrorMessage(err, 'Failed to save seller rating'))
+    } finally {
+      setSellerRatingBusy(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -636,6 +727,59 @@ export default function ProductDetails() {
             <div className="text-sm font-semibold text-gray-900">Seller contact</div>
             <div className="text-sm text-gray-700">
               Phone: <span className="font-semibold">{product.contactPhone || '—'}</span>
+            </div>
+
+            <div className="mt-1 flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-1 text-amber-500">
+                <Star className="h-4 w-4 fill-amber-500" />
+                <span className="font-semibold text-gray-900">
+                  {Number(sellerRating ?? 0).toFixed(1)}
+                </span>
+              </div>
+              <span className="text-gray-500">({Number(sellerReviewCount ?? 0)})</span>
+            </div>
+
+            <div className="mt-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Rate seller</div>
+              <div className="mt-1 flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((value) => {
+                  const active = value <= (selectedSellerRating || mySellerRating)
+                  return (
+                    <button
+                      key={`seller-${value}`}
+                      type="button"
+                      className="rounded p-1 text-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!canRateSeller || sellerRatingBusy}
+                      onClick={() => {
+                        setSelectedSellerRating(value)
+                        setSellerRatingError('')
+                        setSellerRatingStatus('')
+                      }}
+                      aria-label={`Rate seller ${value} star${value === 1 ? '' : 's'}`}
+                    >
+                      <Star className={`h-5 w-5 ${active ? 'fill-amber-500' : ''}`} />
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="mt-2 flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!canRateSeller || sellerRatingBusy || selectedSellerRating < 1}
+                  onClick={submitSellerRating}
+                >
+                  {sellerRatingBusy ? 'Saving…' : mySellerRating ? 'Update seller rating' : 'Submit seller rating'}
+                </Button>
+                {!user ? <span className="text-xs text-gray-500">Sign in to rate.</span> : null}
+                {user && isOwnerOrAdmin ? (
+                  <span className="text-xs text-gray-500">You cannot rate yourself.</span>
+                ) : null}
+              </div>
+
+              {sellerRatingStatus ? <div className="mt-2 text-sm text-green-700">{sellerRatingStatus}</div> : null}
+              {sellerRatingError ? <div className="mt-2 text-sm text-red-600">{sellerRatingError}</div> : null}
             </div>
 
             {canSendInterest ? (

@@ -239,6 +239,21 @@ export async function apiGetProductRatingSummary(productId) {
   return res.data
 }
 
+export async function apiUpsertSellerRating(sellerUserId, stars) {
+  const res = await api.put(`/ratings/sellers/${sellerUserId}`, { stars })
+  return res.data
+}
+
+export async function apiGetMySellerRating(sellerUserId) {
+  const res = await api.get(`/ratings/sellers/${sellerUserId}/me`)
+  return res.data
+}
+
+export async function apiGetSellerRatingSummary(sellerUserId) {
+  const res = await api.get(`/ratings/sellers/${sellerUserId}/summary`)
+  return res.data
+}
+
 export async function apiGetWishlist() {
   const res = await api.get('/wishlist')
   return res.data

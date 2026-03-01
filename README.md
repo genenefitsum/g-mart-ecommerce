@@ -6,6 +6,7 @@ G-Mart is a full-stack e-commerce app with a React frontend and an Express + Mon
 
 - User authentication (email/password + Google Sign-In)
 - Product create, update, delete, and detail pages
+- Buyer ratings for products and sellers (stars 1-5)
 - Image upload support (Cloudinary when configured)
 - Cart and checkout flow
 - Orders and admin management endpoints
@@ -85,5 +86,17 @@ npm run dev:api
 - Set all required environment variables in your hosting platform.
 - Cloudinary is recommended in production for product images.
 - `vercel.json` files are included for frontend/backend deployment setup.
+
+## Ratings API (v1)
+
+- Product rating submit/update: `PUT /api/v1/ratings/products/:productId` body `{ "stars": 1..5 }`
+- Product rating summary: `GET /api/v1/ratings/products/:productId/summary`
+- Product current user rating: `GET /api/v1/ratings/products/:productId/me`
+- Seller rating submit/update: `PUT /api/v1/ratings/sellers/:sellerUserId` body `{ "stars": 1..5 }`
+- Seller rating summary: `GET /api/v1/ratings/sellers/:sellerUserId/summary`
+- Seller current user rating: `GET /api/v1/ratings/sellers/:sellerUserId/me`
+
+Eligibility rule for current release:
+- Buyers can rate products/sellers after they have sent a product interest for that seller listing.
 
 ---

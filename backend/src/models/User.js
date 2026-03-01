@@ -23,6 +23,17 @@ const userSchema = new mongoose.Schema ({
         enum: ['buyer', 'seller', 'admin'],
         default: 'buyer'
     },
+    sellerRatingAverage: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 5,
+    },
+    sellerRatingCount: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
 },
     { timestamps: true }
 

@@ -190,3 +190,99 @@ test('ratings: stars validation and auth checks', async () => {
   assert.equal(badStarsRes.status, 400)
   assert.equal(badStarsRes.body?.ok, false)
 })
+
+test('seller ratings: eligible buyer can create and update seller rating', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const sellerReg = await registerAndGetToken(http, {
+    name: 'Seller',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(sellerReg.status, 201)
+
+  const buyerReg = await registerAndGetToken(http, {
+    name: 'Buyer',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(buyerReg.status, 201)
+
+  const sellerUser = await getCurrentUser(http, sellerReg.body.accessToken)
+  const product = await createSellerProduct({ sellerUserId: sellerUser.id })
+
+  const interestRes = await http
+    .post(`/api/v1/products/${product._id}/interest`)
+    .set('Authorization', `Bearer ${buyerReg.body.accessToken}`)
+    .send({ mode: 'notify_only' })
+  assert.equal(interestRes.status, 201)
+
+  const firstRatingRes = await http
+    .put(`/api/v1/ratings/sellers/${sellerUser.id}`)
+    .set('Authorization', `Bearer ${buyerReg.body.accessToken}`)
+    .send({ stars: 4 })
+
+  assert.equal(firstRatingRes.status, 201)
+  assert.equal(firstRatingRes.body?.ok, true)
+  assert.equal(firstRatingRes.body?.created, true)
+  assert.equal(firstRatingRes.body?.rating, 4)
+  assert.equal(firstRatingRes.body?.reviewCount, 1)
+
+  const secondRatingRes = await http
+    .put(`/api/v1/ratings/sellers/${sellerUser.id}`)
+    .set('Authorization', `Bearer ${buyerReg.body.accessToken}`)
+    .send({ stars: 5 })
+
+  assert.equal(secondRatingRes.status, 200)
+  assert.equal(secondRatingRes.body?.ok, true)
+  assert.equal(secondRatingRes.body?.created, false)
+  assert.equal(secondRatingRes.body?.rating, 5)
+  assert.equal(secondRatingRes.body?.reviewCount, 1)
+
+  const mineRes = await http
+    .get(`/api/v1/ratings/sellers/${sellerUser.id}/me`)
+    .set('Authorization', `Bearer ${buyerReg.body.accessToken}`)
+
+  assert.equal(mineRes.status, 200)
+  assert.equal(mineRes.body?.ok, true)
+  assert.equal(mineRes.body?.hasRating, true)
+  assert.equal(mineRes.body?.stars, 5)
+
+  const summaryRes = await http.get(`/api/v1/ratings/sellers/${sellerUser.id}/summary`)
+  assert.equal(summaryRes.status, 200)
+  assert.equal(summaryRes.body?.ok, true)
+  assert.equal(summaryRes.body?.rating, 5)
+  assert.equal(summaryRes.body?.reviewCount, 1)
+})
+
+test('seller ratings: buyer without product interest is blocked', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const sellerReg = await registerAndGetToken(http, {
+    name: 'Seller',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(sellerReg.status, 201)
+
+  const buyerReg = await registerAndGetToken(http, {
+    name: 'Buyer',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(buyerReg.status, 201)
+
+  const sellerUser = await getCurrentUser(http, sellerReg.body.accessToken)
+
+  await createSellerProduct({ sellerUserId: sellerUser.id, name: 'Seller Without Interest Rating Product' })
+
+  const ratingRes = await http
+    .put(`/api/v1/ratings/sellers/${sellerUser.id}`)
+    .set('Authorization', `Bearer ${buyerReg.body.accessToken}`)
+    .send({ stars: 4 })
+
+  assert.equal(ratingRes.status, 403)
+  assert.equal(ratingRes.body?.ok, false)
+})
