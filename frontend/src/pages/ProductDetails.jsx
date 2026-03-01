@@ -41,6 +41,8 @@ function normalizeProduct(product) {
     .map((value) => resolveAssetUrl(value))
     .filter(Boolean)
 
+  const uniqueImages = Array.from(new Set(images))
+
   return {
     id,
     name: product?.name ?? '',
@@ -48,8 +50,8 @@ function normalizeProduct(product) {
     price: Number(product?.price ?? 0),
     description: product?.description ?? '',
     contactPhone: product?.contactPhone ?? '',
-    image: images[0] ?? '',
-    images,
+    image: uniqueImages[0] ?? '',
+    images: uniqueImages,
     sellerUserId: String(product?.sellerUserId ?? ''),
     rating: Number(product?.rating ?? product?.ratingAverage ?? 0),
     reviewCount: Number(product?.reviewCount ?? product?.ratingCount ?? 0),
