@@ -262,8 +262,8 @@ function ProductsGrid({ products, onAddToCart }) {
 
             <div className="p-3 lg:p-3.5">
               {product.canAddToCart ? (
-                <div className="mb-2 inline-flex rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-                  Admin product
+                  <div className="mb-2 inline-flex rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
+                    G-MART
                 </div>
               ) : null}
 
