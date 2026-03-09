@@ -6,6 +6,7 @@ import { requireAuth } from '../middleware/requireAuth.js'
 import { requireAdmin } from '../middleware/requireRole.js'
 import User from '../models/User.js'
 import Order from '../models/Order.js'
+import Product from '../models/Product.js'
 import SiteSettings from '../models/SiteSettings.js'
 
 export const adminRouter = Router()
@@ -41,6 +42,12 @@ function normalizeRole(value) {
   return role
 }
 
+function normalizeObjectId(value) {
+  const id = String(value ?? '').trim()
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) return ''
+  return id
+}
+
 function toRecipientShape(value) {
   const recipient = value && typeof value === 'object' ? value : {}
   const normalized = {
@@ -73,6 +80,33 @@ async function getOrCreateMainSettings() {
 
   settings = await SiteSettings.create({ key: 'main' })
   return settings
+}
+
+function toAdminProductShape(product) {
+  const plain = product && typeof product === 'object' ? product : {}
+  const seller = plain.sellerUserId && typeof plain.sellerUserId === 'object'
+    ? plain.sellerUserId
+    : {}
+
+  return {
+    id: String(plain._id ?? ''),
+    name: String(plain.name ?? ''),
+    category: String(plain.category ?? ''),
+    description: String(plain.description ?? ''),
+    contactPhone: String(plain.contactPhone ?? ''),
+    price: Number(plain.price ?? 0),
+    imageUrl: String(plain.imageUrl ?? ''),
+    images: Array.isArray(plain.images) ? plain.images.map((value) => String(value ?? '')) : [],
+    isAdminProduct: Boolean(plain.isAdminProduct),
+    createdAt: plain.createdAt,
+    updatedAt: plain.updatedAt,
+    seller: {
+      id: String(seller._id ?? plain.sellerUserId ?? ''),
+      name: String(seller.name ?? ''),
+      email: String(seller.email ?? ''),
+      role: String(seller.role ?? ''),
+    },
+  }
 }
 
 // GET /api/v1/admin/users
@@ -209,6 +243,44 @@ adminRouter.patch('/orders/:orderId/status', async (req, res, next) => {
     }
 
     return res.json({ ok: true, order })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// GET /api/v1/admin/products
+adminRouter.get('/products', async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const q = String(req.query?.q ?? '').trim()
+    const category = String(req.query?.category ?? '').trim()
+    const sellerId = normalizeObjectId(req.query?.sellerId)
+    const limit = normalizeLimit(req.query?.limit)
+
+    const filter = {}
+    if (category) filter.category = { $regex: category, $options: 'i' }
+    if (sellerId) filter.sellerUserId = sellerId
+
+    if (q) {
+      filter.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+        { category: { $regex: q, $options: 'i' } },
+      ]
+    }
+
+    const products = await Product.find(filter)
+      .select('_id name category description contactPhone price imageUrl images sellerUserId isAdminProduct createdAt updatedAt')
+      .populate('sellerUserId', '_id name email role')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean()
+
+    return res.json({
+      ok: true,
+      products: products.map(toAdminProductShape),
+    })
   } catch (err) {
     return next(err)
   }

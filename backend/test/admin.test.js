@@ -86,6 +86,21 @@ async function createAdminProduct() {
   })
 }
 
+async function createSellerProduct({ sellerUserId, name = 'Seller Product', category = 'Electronics' }) {
+  const { default: Product } = await import('../src/models/Product.js')
+  return Product.create({
+    name,
+    price: 350,
+    category,
+    description: 'Seller uploaded product for admin moderation tests',
+    contactPhone: '+251955555555',
+    imageUrl: 'http://localhost:4000/uploads/products/seller.jpg',
+    images: ['http://localhost:4000/uploads/products/seller.jpg'],
+    sellerUserId,
+    isAdminProduct: false,
+  })
+}
+
 test('admin: non-admin cannot access admin routes', async () => {
   const app = await makeApp()
   const http = agent(app)
@@ -175,6 +190,50 @@ test('admin: can list and update order status', async () => {
   assert.equal(updateStatusRes.status, 200)
   assert.equal(updateStatusRes.body?.ok, true)
   assert.equal(updateStatusRes.body?.order?.status, 'processing')
+})
+
+test('admin: can list seller products and filter by seller', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const admin = await createAdminAndToken(http)
+  const sellerA = await createBuyerAndToken(http, 'Seller A')
+  const sellerB = await createBuyerAndToken(http, 'Seller B')
+
+  await setUserRoleByEmail(sellerA.email, 'seller')
+  await setUserRoleByEmail(sellerB.email, 'seller')
+
+  const productA = await createSellerProduct({
+    sellerUserId: sellerA.userId,
+    name: 'Phone X',
+    category: 'Phones',
+  })
+  await createSellerProduct({
+    sellerUserId: sellerB.userId,
+    name: 'Blender Prime',
+    category: 'Kitchen',
+  })
+
+  const listRes = await http
+    .get('/api/v1/admin/products')
+    .set('Authorization', `Bearer ${admin.token}`)
+
+  assert.equal(listRes.status, 200)
+  assert.equal(listRes.body?.ok, true)
+  assert.equal(Array.isArray(listRes.body?.products), true)
+  assert.ok(listRes.body.products.some((item) => item.name === 'Phone X'))
+
+  const filteredRes = await http
+    .get('/api/v1/admin/products')
+    .query({ sellerId: sellerA.userId })
+    .set('Authorization', `Bearer ${admin.token}`)
+
+  assert.equal(filteredRes.status, 200)
+  assert.equal(filteredRes.body?.ok, true)
+  assert.equal(Array.isArray(filteredRes.body?.products), true)
+  assert.equal(filteredRes.body.products.length, 1)
+  assert.equal(filteredRes.body.products[0]?.id, String(productA._id))
+  assert.equal(filteredRes.body.products[0]?.seller?.id, String(sellerA.userId))
 })
 
 test('admin: settings update drives checkout payment recipient', async () => {

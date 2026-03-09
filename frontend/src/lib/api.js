@@ -323,6 +323,17 @@ export async function apiAdminListOrders({ status, limit } = {}) {
   return res.data
 }
 
+export async function apiAdminListProducts({ q, category, sellerId, limit } = {}) {
+  const params = {}
+  if (q) params.q = q
+  if (category) params.category = category
+  if (sellerId) params.sellerId = sellerId
+  if (limit) params.limit = limit
+
+  const res = await api.get('/admin/products', { params })
+  return res.data
+}
+
 export async function apiAdminUpdateOrderStatus(orderId, status) {
   const res = await api.patch(`/admin/orders/${orderId}/status`, { status })
   return res.data

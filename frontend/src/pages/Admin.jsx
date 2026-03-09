@@ -4,7 +4,9 @@ import { ArrowLeft } from 'lucide-react'
 
 import { useAuth } from '@/context/AuthContext'
 import {
+  apiDeleteProduct,
   apiAdminGetSettings,
+  apiAdminListProducts,
   apiAdminListOrders,
   apiAdminListUsers,
   apiAdminUpdateOrderStatus,
@@ -74,6 +76,15 @@ export default function Admin() {
   const [pendingOrderStatuses, setPendingOrderStatuses] = useState({})
   const [savingOrderId, setSavingOrderId] = useState('')
 
+  const [products, setProducts] = useState([])
+  const [productsLoading, setProductsLoading] = useState(false)
+  const [productsError, setProductsError] = useState('')
+  const [productSearch, setProductSearch] = useState('')
+  const [appliedProductSearch, setAppliedProductSearch] = useState('')
+  const [productCategoryFilter, setProductCategoryFilter] = useState('')
+  const [productSellerFilter, setProductSellerFilter] = useState('')
+  const [deletingProductId, setDeletingProductId] = useState('')
+
   const [settings, setSettings] = useState(() => normalizeSettings())
   const [settingsLoading, setSettingsLoading] = useState(false)
   const [settingsError, setSettingsError] = useState('')
@@ -141,6 +152,30 @@ export default function Admin() {
     }
   }, [orderStatusFilter])
 
+  const loadProducts = useCallback(async () => {
+    setProductsLoading(true)
+    setProductsError('')
+
+    try {
+      const data = await apiAdminListProducts({
+        q: appliedProductSearch || undefined,
+        category: productCategoryFilter || undefined,
+        sellerId: productSellerFilter || undefined,
+      })
+
+      if (!data?.ok) {
+        throw new Error(data?.error || 'Failed to load products')
+      }
+
+      const list = Array.isArray(data.products) ? data.products : []
+      setProducts(list)
+    } catch (err) {
+      setProductsError(toErrorMessage(err, 'Failed to load products'))
+    } finally {
+      setProductsLoading(false)
+    }
+  }, [appliedProductSearch, productCategoryFilter, productSellerFilter])
+
   const loadSettings = useCallback(async () => {
     setSettingsLoading(true)
     setSettingsError('')
@@ -168,11 +203,59 @@ export default function Admin() {
 
   useEffect(() => {
     if (!isAdmin) return
+    loadProducts()
+  }, [isAdmin, loadProducts])
+
+  useEffect(() => {
+    if (!isAdmin) return
     loadSettings()
   }, [isAdmin, loadSettings])
 
   const usersCount = useMemo(() => users.length, [users.length])
   const ordersCount = useMemo(() => orders.length, [orders.length])
+  const productsCount = useMemo(() => products.length, [products.length])
+
+  const sellerOptions = useMemo(() => {
+    const byId = new Map()
+
+    for (const item of products) {
+      const sellerId = String(item?.seller?.id ?? '').trim()
+      if (!sellerId || byId.has(sellerId)) continue
+
+      const name = String(item?.seller?.name ?? '').trim() || 'Unknown seller'
+      const email = String(item?.seller?.email ?? '').trim()
+      byId.set(sellerId, {
+        id: sellerId,
+        label: email ? `${name} (${email})` : name,
+      })
+    }
+
+    return Array.from(byId.values())
+  }, [products])
+
+  const productsGroupedBySeller = useMemo(() => {
+    const groups = new Map()
+
+    for (const item of products) {
+      const sellerId = String(item?.seller?.id ?? '').trim() || 'unknown'
+      const sellerName = String(item?.seller?.name ?? '').trim() || 'Unknown seller'
+      const sellerEmail = String(item?.seller?.email ?? '').trim()
+      const key = `${sellerId}|${sellerName}|${sellerEmail}`
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          sellerId,
+          sellerName,
+          sellerEmail,
+          items: [],
+        })
+      }
+
+      groups.get(key).items.push(item)
+    }
+
+    return Array.from(groups.values())
+  }, [products])
 
   const onSearchUsers = async (e) => {
     e.preventDefault()
@@ -223,6 +306,37 @@ export default function Admin() {
       setOrdersError(toErrorMessage(err, 'Failed to update order status'))
     } finally {
       setSavingOrderId('')
+    }
+  }
+
+  const onSearchProducts = async (e) => {
+    e.preventDefault()
+
+    const nextSearch = productSearch.trim()
+    if (nextSearch !== appliedProductSearch) {
+      setAppliedProductSearch(nextSearch)
+      return
+    }
+
+    await loadProducts()
+  }
+
+  const onDeleteProduct = async (productId, productName) => {
+    const safeName = String(productName ?? '').trim() || 'this product'
+    const confirmed = window.confirm(`Delete "${safeName}"? This action cannot be undone.`)
+    if (!confirmed) return
+
+    setDeletingProductId(productId)
+    setProductsError('')
+
+    try {
+      const data = await apiDeleteProduct(productId)
+      if (!data?.ok) throw new Error(data?.error || 'Failed to delete product')
+      await loadProducts()
+    } catch (err) {
+      setProductsError(toErrorMessage(err, 'Failed to delete product'))
+    } finally {
+      setDeletingProductId('')
     }
   }
 
@@ -285,7 +399,7 @@ export default function Admin() {
 
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">Admin</h1>
-        <p className="mt-1 text-sm text-gray-500">Manage users, orders, and site settings.</p>
+        <p className="mt-1 text-sm text-gray-500">Manage users, seller products, orders, and site settings.</p>
       </div>
 
       <div className="grid gap-5">
@@ -370,6 +484,109 @@ export default function Admin() {
                   </div>
                 )
               })}
+            </div>
+          )}
+        </Card>
+
+        <Card className="rounded-2xl border border-gray-200 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-base font-semibold text-gray-900">Seller Products</div>
+              <div className="text-sm text-gray-500">Total loaded: {productsCount}</div>
+            </div>
+          </div>
+
+          <form onSubmit={onSearchProducts} className="mt-4 grid gap-3 sm:grid-cols-4">
+            <div className="sm:col-span-2">
+              <Input
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                placeholder="Search by product name, category, description"
+              />
+            </div>
+            <div>
+              <Input
+                value={productCategoryFilter}
+                onChange={(e) => setProductCategoryFilter(e.target.value)}
+                placeholder="Filter category"
+              />
+            </div>
+            <div>
+              <Button type="submit" className="w-full" disabled={productsLoading}>
+                {productsLoading ? 'Loading…' : 'Refresh'}
+              </Button>
+            </div>
+
+            <div className="sm:col-span-2">
+              <select
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={productSellerFilter}
+                onChange={(e) => setProductSellerFilter(e.target.value)}
+              >
+                <option value="">All sellers</option>
+                {sellerOptions.map((item) => (
+                  <option key={item.id} value={item.id}>{item.label}</option>
+                ))}
+              </select>
+            </div>
+          </form>
+
+          {productsError ? <div className="mt-3 text-sm text-red-600">{productsError}</div> : null}
+
+          {productsLoading ? (
+            <div className="mt-4 text-sm text-gray-600">Loading products…</div>
+          ) : products.length === 0 ? (
+            <div className="mt-4 text-sm text-gray-600">No products found.</div>
+          ) : (
+            <div className="mt-4 grid gap-4">
+              {productsGroupedBySeller.map((group) => (
+                <div key={`${group.sellerId}-${group.sellerName}`} className="rounded-xl border border-gray-200 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">{group.sellerName}</div>
+                      <div className="text-xs text-gray-500">
+                        {group.sellerEmail || 'No seller email'}
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500">Products: {group.items.length}</div>
+                  </div>
+
+                  <div className="mt-3 grid gap-3">
+                    {group.items.map((item) => {
+                      const itemId = String(item.id)
+                      const isDeleting = deletingProductId === itemId
+
+                      return (
+                        <div key={itemId} className="rounded-lg border border-gray-200 p-3">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <div className="text-sm font-semibold text-gray-900">{item.name}</div>
+                              <div className="mt-1 text-xs text-gray-500">
+                                {item.category} • {formatBirr(item.price)}
+                              </div>
+                              <div className="mt-1 text-xs text-gray-500">Uploaded: {formatDate(item.createdAt)}</div>
+                            </div>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-red-200 text-red-700 hover:bg-red-50"
+                              disabled={isDeleting}
+                              onClick={() => onDeleteProduct(itemId, item.name)}
+                            >
+                              {isDeleting ? 'Deleting…' : 'Delete'}
+                            </Button>
+                          </div>
+
+                          {item.description ? (
+                            <p className="mt-2 text-xs text-gray-600 line-clamp-2">{item.description}</p>
+                          ) : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </Card>
