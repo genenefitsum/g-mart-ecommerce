@@ -286,6 +286,36 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
     const [showAll, setShowAll] = useState(false);
     const visibleProducts = showAll ? products : products.slice(0, 8);
 
+    const collapseToFeatured = () => {
+        const section = document.getElementById("products");
+        if (!section) {
+            setShowAll(false);
+            return;
+        }
+
+        const targetTop = section.getBoundingClientRect().top + window.scrollY;
+        let finished = false;
+
+        const finish = () => {
+            if (finished) return;
+            finished = true;
+            window.removeEventListener("scroll", onScroll);
+            window.clearTimeout(timer);
+            setShowAll(false);
+        };
+
+        const onScroll = () => {
+            if (window.scrollY <= targetTop + 8) {
+                finish();
+            }
+        };
+
+        window.addEventListener("scroll", onScroll, { passive: true });
+        const timer = window.setTimeout(finish, 900);
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+        onScroll();
+    };
+
     if (isLoading) {
         return (
             <div className="text-center text-gray-500 font-montserrat py-10">
@@ -484,7 +514,7 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                         type="button"
                         variant="outline"
                         className="rounded-xl font-montserrat"
-                        onClick={() => setShowAll(false)}
+                        onClick={collapseToFeatured}
                     >
                         View featured
                         <ChevronUp />

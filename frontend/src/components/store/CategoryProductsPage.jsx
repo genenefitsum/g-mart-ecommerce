@@ -156,6 +156,36 @@ function ProductsGrid({ products, onAddToCart }) {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
   const visibleProducts = showAll ? products : products.slice(0, 8);
+  
+  const collapseToFeatured = () => {
+    const section = document.getElementById("products") || document.getElementById("categories");
+    if (!section) {
+      setShowAll(false);
+      return;
+    }
+
+    const targetTop = section.getBoundingClientRect().top + window.scrollY;
+    let finished = false;
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(timer);
+      setShowAll(false);
+    };
+
+    const onScroll = () => {
+      if (window.scrollY <= targetTop + 8) {
+        finish();
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    const timer = window.setTimeout(finish, 900);
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+    onScroll();
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -296,7 +326,7 @@ function ProductsGrid({ products, onAddToCart }) {
             type="button"
             variant="outline"
             className="rounded-xl font-montserrat"
-            onClick={() => setShowAll(false)}
+            onClick={collapseToFeatured}
           >
             View featured
             <ChevronUp />
