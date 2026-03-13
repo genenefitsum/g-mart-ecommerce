@@ -56,6 +56,11 @@ GOOGLE_CLIENT_ID=your_google_client_id
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+# Keep-alive cron (optional)
+KEEP_ALIVE_ENABLED=false
+KEEP_ALIVE_TARGET_URL=https://g-mart-ecommerce-1.onrender.com/healthz
+KEEP_ALIVE_CRON=*/14 * * * *
 ```
 
 ### Frontend (`frontend/.env`)
@@ -86,6 +91,7 @@ npm run dev:api
 - Set all required environment variables in your hosting platform.
 - Cloudinary is recommended in production for product images.
 - `vercel.json` files are included for frontend/backend deployment setup.
+- The keep-alive scheduler only runs while the Node process is already alive. If your host fully suspends the service when idle, use an external cron source to hit `KEEP_ALIVE_TARGET_URL` instead.
 
 ## Ratings API (v1)
 

@@ -1,6 +1,7 @@
 import { createServer } from './server.js'
 import { connectMongo } from './db/mongo.js'
 import AuthIdentity from './models/AuthIdentity.js'
+import { startKeepAliveJob } from './services/keepAlive.js'
 
 const port = Number(process.env.PORT ?? 4000)
 const host = '0.0.0.0'
@@ -30,4 +31,6 @@ try {
 app.listen(port, host, () => {
   // eslint-disable-next-line no-console
   console.log(`API listening on ${host}:${port}`)
+
+  startKeepAliveJob()
 })
