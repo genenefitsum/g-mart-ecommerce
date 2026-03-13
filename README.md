@@ -56,6 +56,8 @@ GOOGLE_CLIENT_ID=your_google_client_id
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=gmart
+CLOUDINARY_TAG=gmart
 
 # Keep-alive cron (optional)
 KEEP_ALIVE_ENABLED=false
@@ -92,6 +94,7 @@ npm run dev:api
 - Cloudinary is recommended in production for product images.
 - `vercel.json` files are included for frontend/backend deployment setup.
 - The keep-alive scheduler only runs while the Node process is already alive. If your host fully suspends the service when idle, use an external cron source to hit `KEEP_ALIVE_TARGET_URL` instead.
+- For shared Cloudinary accounts, set a unique `CLOUDINARY_FOLDER` per project (for example `gmart-prod`) so uploads and deletes stay isolated by folder namespace.
 
 ## Ratings API (v1)
 
