@@ -46,13 +46,13 @@ export function resolveAssetUrl(rawUrl) {
   const value = String(rawUrl ?? '').trim()
   if (!value) return ''
 
-  if (/^(?:data:|blob:|https?:\/\/)/i.test(value)) return value
+  if (/^(?:blob:|https?:\/\/)/i.test(value)) return value
 
   if (value.startsWith('/')) {
     return apiOrigin ? `${apiOrigin}${value}` : value
   }
 
-  return value
+  return ''
 }
 
 let refreshInFlight = null

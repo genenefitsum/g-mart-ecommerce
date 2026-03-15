@@ -127,3 +127,25 @@ test('account: delete account prevents future login', async () => {
   const loginRes = await loginAndGetToken(http, { email, password })
   assert.equal(loginRes.status, 401)
 })
+
+test('auth: deleted user cannot use previously issued access token', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const email = uniqueEmail()
+  const password = 'password123'
+
+  const reg = await registerAndGetToken(http, { name: 'Temp User', email, password })
+  assert.equal(reg.status, 201)
+  const token = reg.body.accessToken
+
+  const { default: User } = await import('../src/models/User.js')
+  await User.deleteOne({ email: email.toLowerCase() })
+
+  const meRes = await http
+    .get('/api/v1/auth/me')
+    .set('Authorization', `Bearer ${token}`)
+
+  assert.equal(meRes.status, 401)
+  assert.equal(meRes.body?.ok, false)
+})

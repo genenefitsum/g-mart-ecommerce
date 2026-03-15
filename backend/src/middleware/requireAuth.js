@@ -1,6 +1,8 @@
 import { verifyAccessToken } from '../services/jwt.js'
+import { getMongoStatus } from '../db/mongo.js'
+import User from '../models/User.js'
 
-export function requireAuth(req, res, next) {
+export async function requireAuth(req, res, next) {
   const header = req.header('authorization') ?? ''
   const [scheme, token] = header.split(' ')
 
@@ -11,9 +13,19 @@ export function requireAuth(req, res, next) {
   try {
     const payload = verifyAccessToken(token)
 
+    const mongo = getMongoStatus()
+    if (!mongo.enabled) {
+      return res.status(503).json({ ok: false, error: 'Authorization requires MongoDB' })
+    }
+
+    const user = await User.findById(payload.sub).select('_id role').lean()
+    if (!user?._id) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    }
+
     req.auth = {
-      userId: payload.sub,
-      role: payload.role,
+      userId: String(user._id),
+      role: String(user.role ?? payload.role ?? '').trim().toLowerCase(),
     }
 
     return next()

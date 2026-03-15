@@ -21,11 +21,10 @@ function readStoredAuth() {
     const parsed = JSON.parse(raw)
     if (!parsed || typeof parsed !== 'object') return null
 
-    const token = typeof parsed.accessToken === 'string' ? parsed.accessToken : ''
     const user = parsed.user && typeof parsed.user === 'object' ? parsed.user : null
 
-    if (!token || !user) return null
-    return { accessToken: token, user }
+    if (!user) return null
+    return { user }
   } catch {
     return null
   }
@@ -42,8 +41,8 @@ export function AuthProvider({ children }) {
     setAccessToken(token)
   }
 
-  const persistAuth = ({ user: nextUser, accessToken: token }) => {
-    if (!nextUser || !token) {
+  const persistAuth = ({ user: nextUser }) => {
+    if (!nextUser) {
       localStorage.removeItem(AUTH_STORAGE_KEY)
       return
     }
@@ -52,7 +51,6 @@ export function AuthProvider({ children }) {
       AUTH_STORAGE_KEY,
       JSON.stringify({
         user: nextUser,
-        accessToken: token,
       }),
     )
   }
@@ -75,7 +73,7 @@ export function AuthProvider({ children }) {
       if (!me?.ok) throw new Error('Failed to load user')
 
       setUser(me.user)
-      persistAuth({ user: me.user, accessToken: data.accessToken })
+      persistAuth({ user: me.user })
       return { ok: true }
     } catch {
       clearAuthState()
@@ -96,7 +94,7 @@ export function AuthProvider({ children }) {
 
       if (data?.user) {
         setUser(data.user)
-        persistAuth({ user: data.user, accessToken: data.accessToken })
+        persistAuth({ user: data.user })
         return { ok: true }
       }
 
@@ -104,7 +102,7 @@ export function AuthProvider({ children }) {
       const me = await apiMe()
       if (!me?.ok) throw new Error('Failed to load user')
       setUser(me.user)
-      persistAuth({ user: me.user, accessToken: data.accessToken })
+      persistAuth({ user: me.user })
       return { ok: true }
     } catch (err) {
       clearAuthState()
@@ -128,14 +126,14 @@ export function AuthProvider({ children }) {
 
       if (data?.user) {
         setUser(data.user)
-        persistAuth({ user: data.user, accessToken: data.accessToken })
+        persistAuth({ user: data.user })
         return { ok: true }
       }
 
       const me = await apiMe()
       if (!me?.ok) throw new Error('Failed to load user')
       setUser(me.user)
-      persistAuth({ user: me.user, accessToken: data.accessToken })
+      persistAuth({ user: me.user })
       return { ok: true }
     } catch (err) {
       clearAuthState()
@@ -159,14 +157,14 @@ export function AuthProvider({ children }) {
 
       if (data?.user) {
         setUser(data.user)
-        persistAuth({ user: data.user, accessToken: data.accessToken })
+        persistAuth({ user: data.user })
         return { ok: true }
       }
 
       const me = await apiMe()
       if (!me?.ok) throw new Error('Failed to load user')
       setUser(me.user)
-      persistAuth({ user: me.user, accessToken: data.accessToken })
+      persistAuth({ user: me.user })
       return { ok: true }
     } catch (err) {
       clearAuthState()
@@ -195,29 +193,11 @@ export function AuthProvider({ children }) {
       setIsLoading(true)
 
       const storedAuth = readStoredAuth()
-      if (storedAuth?.accessToken && storedAuth?.user) {
-        setAccess(storedAuth.accessToken)
+      if (storedAuth?.user) {
         setUser(storedAuth.user)
       }
 
-      let result = { ok: false }
-
-      if (storedAuth?.accessToken) {
-        try {
-          const me = await apiMe()
-          if (me?.ok) {
-            setUser(me.user)
-            persistAuth({ user: me.user, accessToken: storedAuth.accessToken })
-            result = { ok: true }
-          } else {
-            result = await refreshSession()
-          }
-        } catch {
-          result = await refreshSession()
-        }
-      } else {
-        result = await refreshSession()
-      }
+      const result = await refreshSession()
 
       if (cancelled) return
       setIsLoading(false)

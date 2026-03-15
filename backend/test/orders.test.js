@@ -179,3 +179,95 @@ test('orders: rejects invalid payment proof file type', async () => {
   assert.equal(uploadRes.body?.ok, false)
   assert.match(String(uploadRes.body?.error ?? ''), /invalid proof file type/i)
 })
+
+test('orders: user cannot access another user order by id', async () => {
+  const app = await makeApp()
+  const buyerA = agent(app)
+  const buyerB = agent(app)
+
+  const regA = await registerAndGetToken(buyerA, {
+    name: 'Buyer A',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  const regB = await registerAndGetToken(buyerB, {
+    name: 'Buyer B',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+
+  assert.equal(regA.status, 201)
+  assert.equal(regB.status, 201)
+
+  const tokenA = regA.body.accessToken
+  const tokenB = regB.body.accessToken
+
+  const product = await makeProduct()
+
+  const createRes = await buyerA
+    .post('/api/v1/orders')
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({
+      items: [{ productId: String(product._id), quantity: 1 }],
+      shipping: { name: 'A', phone: '+251900000001', addressLine1: 'X', city: 'Y' },
+      payment: { method: 'telebirr', transactionRef: 'TX-A' },
+    })
+
+  assert.equal(createRes.status, 201)
+  const orderId = String(createRes.body.order._id)
+
+  const getByOtherUser = await buyerB
+    .get(`/api/v1/orders/${orderId}`)
+    .set('Authorization', `Bearer ${tokenB}`)
+
+  assert.equal(getByOtherUser.status, 404)
+  assert.equal(getByOtherUser.body?.ok, false)
+})
+
+test('orders: user cannot upload payment proof for another user order', async () => {
+  const app = await makeApp()
+  const buyerA = agent(app)
+  const buyerB = agent(app)
+
+  const regA = await registerAndGetToken(buyerA, {
+    name: 'Buyer A',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  const regB = await registerAndGetToken(buyerB, {
+    name: 'Buyer B',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+
+  assert.equal(regA.status, 201)
+  assert.equal(regB.status, 201)
+
+  const tokenA = regA.body.accessToken
+  const tokenB = regB.body.accessToken
+
+  const product = await makeProduct()
+
+  const createRes = await buyerA
+    .post('/api/v1/orders')
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({
+      items: [{ productId: String(product._id), quantity: 1 }],
+      shipping: { name: 'A', phone: '+251900000001', addressLine1: 'X', city: 'Y' },
+      payment: { method: 'bank', transactionRef: 'TX-A' },
+    })
+
+  assert.equal(createRes.status, 201)
+  const orderId = String(createRes.body.order._id)
+
+  const tmpFile = path.join(os.tmpdir(), `proof-${Date.now()}.png`)
+  await fs.writeFile(tmpFile, 'proof')
+
+  const uploadByOtherUser = await buyerB
+    .post(`/api/v1/orders/${orderId}/payment-proof`)
+    .set('Authorization', `Bearer ${tokenB}`)
+    .attach('proof', tmpFile)
+
+  assert.equal(uploadByOtherUser.status, 404)
+  assert.equal(uploadByOtherUser.body?.ok, false)
+})
