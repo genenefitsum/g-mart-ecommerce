@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import bcrypt from 'bcrypt'
 import { OAuth2Client } from 'google-auth-library'
+import rateLimit from 'express-rate-limit'
 
 import { getMongoStatus } from '../db/mongo.js'
 import User from '../models/User.js'
@@ -21,6 +22,30 @@ import Product from '../models/Product.js'
 export const authRouter = Router()
 
 const googleClient = new OAuth2Client()
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many requests. Please try again later.' },
+})
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many login attempts. Please try again later.' },
+})
+
+const refreshLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many refresh attempts. Please try again later.' },
+})
 
 function mongoGuard(req, res) {
   const status = getMongoStatus()
@@ -196,7 +221,7 @@ async function findOrCreateUserForGoogleIdentity(profile) {
 }
 
 // POST /api/v1/auth/register
-authRouter.post('/register', async (req, res, next) => {
+authRouter.post('/register', authLimiter, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -258,7 +283,7 @@ authRouter.post('/register', async (req, res, next) => {
 })
 
 // POST /api/v1/auth/login
-authRouter.post('/login', async (req, res, next) => {
+authRouter.post('/login', loginLimiter, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -302,7 +327,7 @@ authRouter.post('/login', async (req, res, next) => {
 
 // POST /api/v1/auth/google
 // body: { credential } where credential is Google ID token
-authRouter.post('/google', async (req, res, next) => {
+authRouter.post('/google', authLimiter, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -332,7 +357,7 @@ authRouter.post('/google', async (req, res, next) => {
 })
 
 // POST /api/v1/auth/refresh
-authRouter.post('/refresh', async (req, res, next) => {
+authRouter.post('/refresh', refreshLimiter, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -469,7 +494,7 @@ authRouter.patch('/me', requireAuth, async (req, res, next) => {
 
 // POST /api/v1/auth/change-password
 // body: { currentPassword, newPassword }
-authRouter.post('/change-password', requireAuth, async (req, res, next) => {
+authRouter.post('/change-password', authLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -505,7 +530,7 @@ authRouter.post('/change-password', requireAuth, async (req, res, next) => {
 
 // DELETE /api/v1/auth/account
 // body: { password }
-authRouter.delete('/account', requireAuth, async (req, res, next) => {
+authRouter.delete('/account', authLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 

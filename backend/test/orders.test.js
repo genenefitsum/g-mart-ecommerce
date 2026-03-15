@@ -126,7 +126,7 @@ test('orders: upload payment proof sets status payment_submitted', async () => {
   assert.equal(createRes.status, 201)
   const orderId = String(createRes.body.order._id)
 
-  const tmpFile = path.join(os.tmpdir(), `proof-${Date.now()}.txt`)
+  const tmpFile = path.join(os.tmpdir(), `proof-${Date.now()}.png`)
   await fs.writeFile(tmpFile, 'proof')
 
   const uploadRes = await http
@@ -138,4 +138,44 @@ test('orders: upload payment proof sets status payment_submitted', async () => {
   assert.equal(uploadRes.body?.ok, true)
   assert.equal(uploadRes.body?.order?.status, 'payment_submitted')
   assert.ok(uploadRes.body?.order?.payment?.proofImageUrl)
+})
+
+test('orders: rejects invalid payment proof file type', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const reg = await registerAndGetToken(http, {
+    name: 'Buyer',
+    email: uniqueEmail(),
+    password: 'password123',
+  })
+  assert.equal(reg.status, 201)
+
+  const token = reg.body.accessToken
+
+  const product = await makeProduct()
+
+  const createRes = await http
+    .post('/api/v1/orders')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      items: [{ productId: String(product._id), quantity: 1 }],
+      shipping: { name: 'John', phone: '+251900000000', addressLine1: 'X', city: 'Y' },
+      payment: { method: 'bank', transactionRef: 'BANK-REF' },
+    })
+
+  assert.equal(createRes.status, 201)
+  const orderId = String(createRes.body.order._id)
+
+  const tmpFile = path.join(os.tmpdir(), `proof-${Date.now()}.txt`)
+  await fs.writeFile(tmpFile, 'proof')
+
+  const uploadRes = await http
+    .post(`/api/v1/orders/${orderId}/payment-proof`)
+    .set('Authorization', `Bearer ${token}`)
+    .attach('proof', tmpFile)
+
+  assert.equal(uploadRes.status, 400)
+  assert.equal(uploadRes.body?.ok, false)
+  assert.match(String(uploadRes.body?.error ?? ''), /invalid proof file type/i)
 })

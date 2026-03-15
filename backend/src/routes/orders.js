@@ -26,6 +26,14 @@ const uploadsRoot = getUploadsRoot()
 const paymentProofDir = path.join(uploadsRoot, 'order-payments')
 fs.mkdirSync(paymentProofDir, { recursive: true })
 
+const allowedProofMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+])
+
+const allowedProofExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp'])
+
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, paymentProofDir),
   filename: (_req, file, cb) => {
@@ -46,6 +54,16 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(String(file?.originalname ?? '').toLowerCase())
+    const mime = String(file?.mimetype ?? '').toLowerCase()
+
+    if (!allowedProofExtensions.has(ext) || !allowedProofMimeTypes.has(mime)) {
+      return cb(new Error('Invalid proof file type. Only JPG, PNG, and WEBP are allowed.'))
+    }
+
+    return cb(null, true)
+  },
 })
 
 function isAdminProductRecord(product) {

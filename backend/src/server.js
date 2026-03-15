@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import helmet from 'helmet'
 import 'dotenv/config'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -26,9 +27,40 @@ function normalizeOrigin(value) {
 
 export function createServer() {
     const app = express()
+    const isProd = process.env.NODE_ENV === 'production'
+
+    app.disable('x-powered-by')
+    app.set('trust proxy', 1)
+    app.set('query parser', 'simple')
+
+    app.use(
+        helmet({
+            crossOriginResourcePolicy: { policy: 'cross-origin' },
+            contentSecurityPolicy: false,
+            hsts: isProd
+                ? {
+                      maxAge: 15552000,
+                      includeSubDomains: true,
+                      preload: false,
+                  }
+                : false,
+        }),
+    )
 
     const uploadsRoot = getUploadsRoot()
-    app.use('/uploads', express.static(uploadsRoot))
+    app.use(
+        '/uploads',
+        express.static(uploadsRoot, {
+            index: false,
+            dotfiles: 'deny',
+            etag: true,
+            maxAge: '1h',
+            setHeaders: (res) => {
+                res.setHeader('X-Content-Type-Options', 'nosniff')
+                res.setHeader('Content-Disposition', 'inline')
+            },
+        }),
+    )
 
     app.use(
         cors({
@@ -68,7 +100,8 @@ export function createServer() {
         }),
     )
     app.use(cookieParser())
-    app.use(express.json())
+    app.use(express.json({ limit: '100kb' }))
+    app.use(express.urlencoded({ extended: false, limit: '50kb' }))
 
     app.use('/api/v1', apiV1)
 
@@ -107,6 +140,14 @@ export function createServer() {
 
     // eslint-disable-next-line no-unused-vars
     app.use((err, _req, res, _next) => {
+        if (err?.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ ok: false, error: 'File too large. Max size is 5MB.' })
+        }
+
+        if (String(err?.message ?? '').startsWith('Invalid proof file type')) {
+            return res.status(400).json({ ok: false, error: err.message })
+        }
+
         // eslint-disable-next-line no-console
         console.error(err)
 
