@@ -18,14 +18,17 @@ export async function requireAuth(req, res, next) {
       return res.status(503).json({ ok: false, error: 'Authorization requires MongoDB' })
     }
 
-    const user = await User.findById(payload.sub).select('_id role').lean()
+    const user = await User.findById(payload.sub).select('_id role isPermanentAdmin').lean()
     if (!user?._id) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' })
     }
 
+    const role = String(user.role ?? payload.role ?? '').trim().toLowerCase()
+
     req.auth = {
       userId: String(user._id),
-      role: String(user.role ?? payload.role ?? '').trim().toLowerCase(),
+      role: user.isPermanentAdmin ? 'admin' : role,
+      isPermanentAdmin: Boolean(user.isPermanentAdmin),
     }
 
     return next()

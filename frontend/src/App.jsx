@@ -25,6 +25,10 @@ import { useAuth } from '@/context/AuthContext'
 import { WishlistProvider } from '@/context/WishlistContext'
 import './index.css'
 
+function isAdminUser(user) {
+  return String(user?.role ?? '').toLowerCase() === 'admin' || Boolean(user?.isPermanentAdmin)
+}
+
 function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showAuth, setShowAuth] = useState(false)
@@ -143,7 +147,7 @@ function App() {
           <Route
             path="/admin"
             element={
-              user?.role === 'admin' ? (
+              isAdminUser(user) ? (
                 <Admin />
               ) : (
                 <Navigate to="/account" replace />

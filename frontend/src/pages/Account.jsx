@@ -37,6 +37,10 @@ function getProductId(value) {
   return ''
 }
 
+function isAdminUser(user) {
+  return String(user?.role ?? '').toLowerCase() === 'admin' || Boolean(user?.isPermanentAdmin)
+}
+
 export default function Account({ onRequireAuth }) {
   const navigate = useNavigate()
   const { user, logout, setUser } = useAuth()
@@ -315,7 +319,7 @@ export default function Account({ onRequireAuth }) {
           <p className="mt-1 text-sm text-gray-500">Manage your profile and view your orders.</p>
         </div>
         <div className="flex items-center gap-2">
-          {user?.role === 'admin' ? (
+          {isAdminUser(user) ? (
             <Button type="button" variant="outline" onClick={() => navigate('/admin')}>
               Admin
             </Button>

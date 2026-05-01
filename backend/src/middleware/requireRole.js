@@ -26,13 +26,15 @@ export function requireAnyRole(...roles) {
     }
 
     try {
-      const user = await User.findById(userId).select('role').lean()
+      const user = await User.findById(userId).select('role isPermanentAdmin').lean()
       const dbRole = String(user?.role ?? '').trim().toLowerCase()
+      const effectiveRole = user?.isPermanentAdmin ? 'admin' : dbRole
 
-      if (allowedRoles.includes(dbRole)) {
+      if (allowedRoles.includes(effectiveRole)) {
         req.auth = {
           ...(req.auth ?? {}),
-          role: dbRole,
+          role: effectiveRole,
+          isPermanentAdmin: Boolean(user?.isPermanentAdmin),
         }
         return next()
       }

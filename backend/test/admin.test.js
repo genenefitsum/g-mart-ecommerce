@@ -186,6 +186,42 @@ test('admin: permanent admin cannot be demoted or deleted', async () => {
   assert.equal(deleteRes.body?.ok, false)
 })
 
+test('admin: permanent-admin flag grants admin access even before role refresh', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const admin = await createAdminAndToken(http)
+  const flagOnlyUser = await createBuyerAndToken(http, 'Flag Only Admin')
+
+  const { default: User } = await import('../src/models/User.js')
+  await User.updateOne(
+    { email: flagOnlyUser.email.toLowerCase() },
+    { $set: { isPermanentAdmin: true } },
+  )
+
+  const meRes = await http
+    .get('/api/v1/auth/me')
+    .set('Authorization', `Bearer ${flagOnlyUser.token}`)
+
+  assert.equal(meRes.status, 200)
+  assert.equal(meRes.body?.user?.isPermanentAdmin, true)
+
+  const usersRes = await http
+    .get('/api/v1/admin/users')
+    .set('Authorization', `Bearer ${flagOnlyUser.token}`)
+
+  assert.equal(usersRes.status, 200)
+  assert.equal(usersRes.body?.ok, true)
+
+  const demoteRes = await http
+    .patch(`/api/v1/admin/users/${flagOnlyUser.userId}/role`)
+    .set('Authorization', `Bearer ${admin.token}`)
+    .send({ role: 'buyer' })
+
+  assert.equal(demoteRes.status, 403)
+  assert.equal(demoteRes.body?.ok, false)
+})
+
 test('admin: can list and update order status', async () => {
   const app = await makeApp()
   const http = agent(app)

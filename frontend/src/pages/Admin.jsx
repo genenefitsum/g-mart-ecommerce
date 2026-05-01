@@ -56,6 +56,10 @@ function normalizeSettings(data) {
   }
 }
 
+function isAdminUser(user) {
+  return String(user?.role ?? '').toLowerCase() === 'admin' || Boolean(user?.isPermanentAdmin)
+}
+
 export default function Admin() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -91,7 +95,7 @@ export default function Admin() {
   const [settingsStatus, setSettingsStatus] = useState('')
   const [settingsSaving, setSettingsSaving] = useState(false)
 
-  const isAdmin = String(user?.role ?? '').toLowerCase() === 'admin'
+  const isAdmin = isAdminUser(user)
 
   const onBack = () => {
     if (window.history.length > 1) {
