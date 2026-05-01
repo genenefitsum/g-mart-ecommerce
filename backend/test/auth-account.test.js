@@ -1,6 +1,7 @@
 import test from 'node:test'
 import { before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
+import bcrypt from 'bcrypt'
 
 import { agent, makeApp, loginAndGetToken, registerAndGetToken } from './helpers.js'
 import { resetTestDb, setupTestDb, teardownTestDb } from './setup.js'
@@ -126,6 +127,56 @@ test('account: delete account prevents future login', async () => {
 
   const loginRes = await loginAndGetToken(http, { email, password })
   assert.equal(loginRes.status, 401)
+})
+
+test('auth: google account can set a local password and then log in with email/password', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const email = uniqueEmail()
+  const passwordHash = await bcrypt.hash('google-temp-password', 12)
+
+  const { default: User } = await import('../src/models/User.js')
+  const { default: AuthIdentity } = await import('../src/models/AuthIdentity.js')
+  const { signAccessToken } = await import('../src/services/jwt.js')
+
+  const user = await User.create({
+    name: 'Google User',
+    email,
+    passwordHash,
+    role: 'buyer',
+  })
+
+  await AuthIdentity.create({
+    userId: user._id,
+    provider: 'google',
+    providerUserId: `google-${Date.now()}`,
+    emailLower: email.toLowerCase(),
+    passwordHash: null,
+    emailVerified: true,
+    profile: { displayName: 'Google User', avatarUrl: '' },
+    lastLoginAt: new Date(),
+  })
+
+  const token = signAccessToken({ userId: user._id, role: user.role })
+
+  const beforeSetLogin = await loginAndGetToken(http, { email, password: 'google-temp-password' })
+  assert.equal(beforeSetLogin.status, 409)
+
+  const setRes = await http
+    .post('/api/v1/auth/set-password')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ newPassword: 'local-password-123' })
+
+  assert.equal(setRes.status, 200)
+  assert.equal(setRes.body?.ok, true)
+  assert.ok(Array.isArray(setRes.body?.user?.authMethods))
+  assert.equal(setRes.body?.user?.authMethods.includes('local'), true)
+
+  const loginRes = await loginAndGetToken(http, { email, password: 'local-password-123' })
+  assert.equal(loginRes.status, 200)
+  assert.equal(loginRes.body?.ok, true)
+  assert.ok(loginRes.body?.accessToken)
 })
 
 test('auth: deleted user cannot use previously issued access token', async () => {

@@ -47,6 +47,48 @@ const refreshLimiter = rateLimit({
   message: { ok: false, error: 'Too many refresh attempts. Please try again later.' },
 })
 
+function formatUserResponse(user, authMethods = []) {
+  return {
+    id: String(user._id),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    authMethods: Array.from(new Set(authMethods.map((method) => String(method ?? '').trim()).filter(Boolean))),
+  }
+}
+
+async function getAuthMethodsForUser(userId) {
+  const identities = await AuthIdentity.find({ userId }).select('provider').lean()
+  return identities.map((identity) => String(identity?.provider ?? '').trim()).filter(Boolean)
+}
+
+async function buildUserResponse(user) {
+  return formatUserResponse(user, await getAuthMethodsForUser(user._id))
+}
+
+async function createOrUpdateLocalIdentity({ user, emailLower }) {
+  await AuthIdentity.updateOne(
+    { provider: 'local', emailLower },
+    {
+      $set: {
+        userId: user._id,
+        emailVerified: true,
+        profile: {
+          displayName: user.name,
+          avatarUrl: '',
+        },
+        lastLoginAt: new Date(),
+      },
+      $setOnInsert: {
+        provider: 'local',
+        emailLower,
+        passwordHash: null,
+      },
+    },
+    { upsert: true },
+  )
+}
+
 function mongoGuard(req, res) {
   const status = getMongoStatus()
   if (!status.enabled) {
@@ -275,7 +317,7 @@ authRouter.post('/register', authLimiter, async (req, res, next) => {
     return res.status(201).json({
       ok: true,
       accessToken,
-      user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
+      user: await buildUserResponse(user),
     })
   } catch (err) {
     return next(err)
@@ -297,6 +339,14 @@ authRouter.post('/login', loginLimiter, async (req, res, next) => {
 
     const authIdentity = await AuthIdentity.findOne({ provider: 'local', emailLower })
     if (!authIdentity) {
+      const googleIdentity = await AuthIdentity.findOne({ provider: 'google', emailLower }).select('_id').lean()
+      if (googleIdentity) {
+        return res.status(409).json({
+          ok: false,
+          error: 'This account uses Google sign-in. Set a password from Account first, or sign in with Google.',
+        })
+      }
+
       return res.status(401).json({ ok: false, error: 'Invalid credentials' })
     }
 
@@ -318,7 +368,7 @@ authRouter.post('/login', loginLimiter, async (req, res, next) => {
     return res.json({
       ok: true,
       accessToken,
-      user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
+      user: await buildUserResponse(user),
     })
   } catch (err) {
     return next(err)
@@ -345,7 +395,7 @@ authRouter.post('/google', authLimiter, async (req, res, next) => {
     return res.json({
       ok: true,
       accessToken,
-      user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
+      user: await buildUserResponse(user),
     })
   } catch (err) {
     const statusCode = Number(err?.statusCode)
@@ -455,7 +505,7 @@ authRouter.get('/me', requireAuth, async (req, res, next) => {
 
     return res.json({
       ok: true,
-      user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
+      user: await buildUserResponse(user),
     })
   } catch (err) {
     return next(err)
@@ -485,7 +535,45 @@ authRouter.patch('/me', requireAuth, async (req, res, next) => {
 
     return res.json({
       ok: true,
-      user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
+      user: await buildUserResponse(user),
+    })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// POST /api/v1/auth/set-password
+// body: { newPassword }
+authRouter.post('/set-password', authLimiter, requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const newPassword = String(req.body?.newPassword ?? '')
+
+    if (!newPassword) {
+      return res.status(400).json({ ok: false, error: 'Missing fields' })
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ ok: false, error: 'Password too short' })
+    }
+
+    const user = await User.findById(req.auth.userId).select('name email role')
+    if (!user) return res.status(401).json({ ok: false, error: 'Unauthorized' })
+
+    const authMethods = await getAuthMethodsForUser(user._id)
+    if (authMethods.includes('local')) {
+      return res.status(409).json({ ok: false, error: 'A local password already exists. Use change password instead.' })
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12)
+    await User.updateOne({ _id: user._id }, { $set: { passwordHash } })
+    await createOrUpdateLocalIdentity({ user, emailLower: String(user.email).trim().toLowerCase() })
+
+    return res.json({
+      ok: true,
+      user: await buildUserResponse(user),
+      message: 'Password set successfully. You can now sign in with email and password.',
     })
   } catch (err) {
     return next(err)

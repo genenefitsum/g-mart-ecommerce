@@ -8,6 +8,7 @@ import {
   apiDeleteAccount,
   apiListMyProducts,
   apiListOrders,
+  apiSetPassword,
   apiUpdateMe,
 } from '@/lib/api'
 import { toErrorMessage } from '@/lib/errors'
@@ -66,6 +67,10 @@ export default function Account({ onRequireAuth }) {
   useEffect(() => {
     setName(user?.name ?? '')
   }, [user?.name])
+
+  const hasLocalPassword = Array.isArray(user?.authMethods)
+    ? user.authMethods.includes('local')
+    : true
 
   useEffect(() => {
     if (!user && typeof onRequireAuth === 'function') {
@@ -177,27 +182,40 @@ export default function Account({ onRequireAuth }) {
       return
     }
 
-    if (!currentPassword || !newPassword) {
-      setPasswordError('Please fill both password fields.')
-      return
-    }
-
     if (String(newPassword).length < 8) {
       setPasswordError('New password must be at least 8 characters.')
       return
     }
 
+    if (hasLocalPassword && !currentPassword) {
+      setPasswordError('Please enter your current password.')
+      return
+    }
+
     setPasswordSubmitting(true)
     try {
-      const data = await apiChangePassword({ currentPassword, newPassword })
+      const data = hasLocalPassword
+        ? await apiChangePassword({ currentPassword, newPassword })
+        : await apiSetPassword({ newPassword })
+
       if (!data?.ok) throw new Error(data?.error || 'Failed to change password')
 
-      setPasswordStatus('Password changed. Please sign in again.')
+      if (data?.user) {
+        setUser(data.user)
+      }
+
+      setPasswordStatus(
+        hasLocalPassword
+          ? 'Password changed. Please sign in again.'
+          : 'Password set. You can now sign in with email and password.',
+      )
       setCurrentPassword('')
       setNewPassword('')
 
-      await logout()
-      navigate('/')
+      if (hasLocalPassword) {
+        await logout()
+        navigate('/')
+      }
     } catch (err) {
       setPasswordError(toErrorMessage(err, 'Failed to change password'))
     } finally {
@@ -432,19 +450,28 @@ export default function Account({ onRequireAuth }) {
         </Card>
 
         <Card className="rounded-2xl border border-gray-200 p-5">
-          <div className="text-base font-semibold text-gray-900">Change Password</div>
+          <div className="text-base font-semibold text-gray-900">
+            {hasLocalPassword ? 'Change Password' : 'Set Password'}
+          </div>
+          {!hasLocalPassword ? (
+            <p className="mt-2 text-sm text-gray-600">
+              You signed in with Google. Set a local password here so you can also sign in with email and password.
+            </p>
+          ) : null}
           <form onSubmit={onChangePassword} className="mt-4 grid gap-4 sm:grid-cols-2">
+            {hasLocalPassword ? (
+              <div className="space-y-2">
+                <Label htmlFor="acc-current">Current password</Label>
+                <Input
+                  id="acc-current"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+              </div>
+            ) : null}
             <div className="space-y-2">
-              <Label htmlFor="acc-current">Current password</Label>
-              <Input
-                id="acc-current"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="acc-new">New password</Label>
+              <Label htmlFor="acc-new">{hasLocalPassword ? 'New password' : 'Password'}</Label>
               <Input
                 id="acc-new"
                 type="password"
@@ -455,7 +482,11 @@ export default function Account({ onRequireAuth }) {
 
             <div className="sm:col-span-2">
               <Button type="submit" disabled={passwordSubmitting}>
-                {passwordSubmitting ? 'Updating…' : 'Update password'}
+                {passwordSubmitting
+                  ? 'Updating…'
+                  : hasLocalPassword
+                    ? 'Update password'
+                    : 'Set password'}
               </Button>
             </div>
 

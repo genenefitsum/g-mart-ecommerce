@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Search, User, Heart, ShoppingBag, Menu, X, MessageCircle } from "lucide-react";
+import { ChevronDown, Search, User, Heart, ShoppingBag, Menu, X, MessageCircle, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import AddProductDialog from "@/components/store/AddProductDialog";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useWishlist } from "@/context/WishlistContext";
@@ -42,7 +43,7 @@ function formatInterestMode(mode) {
   return mode === "with_contact" ? "Notify + contact info" : "Notify only";
 }
 
-const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
+const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) => {
   const { setIsCartOpen, totalItems } = useCart();
   const { setIsWishlistOpen, totalItems: totalWishlistItems } = useWishlist();
   const { user } = useAuth();
@@ -398,6 +399,23 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                 <Search size={22} />
               </button>
 
+              {user ? (
+                <AddProductDialog
+                  onCreated={onProductCreated}
+                  onRequireAuth={onAuthOpen}
+                  trigger={(
+                    <button
+                      type="button"
+                      className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                      aria-label="Add Product"
+                      title="Add Product"
+                    >
+                      <Plus size={22} />
+                    </button>
+                  )}
+                />
+              ) : null}
+
               {shouldShowMessagesIcon ? (
                 <button
                   type="button"
@@ -562,6 +580,23 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen }) => {
                   </button>
                 )}
               </div>
+
+              {user ? (
+                <AddProductDialog
+                  onCreated={onProductCreated}
+                  onRequireAuth={onAuthOpen}
+                  trigger={(
+                    <button
+                      type="button"
+                      className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                      aria-label="Add Product"
+                      title="Add Product"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  )}
+                />
+              ) : null}
 
               {user ? (
                 <>

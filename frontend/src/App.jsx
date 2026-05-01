@@ -108,6 +108,7 @@ function App() {
           searchQuery={searchQuery}
           onSearch={setSearchQuery}
           onAuthOpen={openAuth}
+          onProductCreated={() => setProductsRefreshKey((k) => k + 1)}
         />
 
         <Routes>

@@ -151,6 +151,11 @@ export async function apiChangePassword({ currentPassword, newPassword }) {
   return res.data
 }
 
+export async function apiSetPassword({ newPassword }) {
+  const res = await api.post('/auth/set-password', { newPassword })
+  return res.data
+}
+
 export async function apiDeleteAccount({ password }) {
   const res = await api.delete('/auth/account', { data: { password } })
   return res.data
