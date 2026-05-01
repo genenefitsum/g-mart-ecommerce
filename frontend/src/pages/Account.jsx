@@ -70,7 +70,7 @@ export default function Account({ onRequireAuth }) {
 
   const hasLocalPassword = Array.isArray(user?.authMethods)
     ? user.authMethods.includes('local')
-    : true
+    : false
 
   useEffect(() => {
     if (!user && typeof onRequireAuth === 'function') {
