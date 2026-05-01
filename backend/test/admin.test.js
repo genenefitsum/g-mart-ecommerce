@@ -149,6 +149,43 @@ test('admin: can list users and change roles with self-demote protection', async
   assert.equal(selfDemoteRes.body?.ok, false)
 })
 
+test('admin: permanent admin cannot be demoted or deleted', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const admin = await createAdminAndToken(http)
+  const protectedAdmin = await createBuyerAndToken(http, 'Protected Admin')
+
+  const { default: User } = await import('../src/models/User.js')
+  await User.updateOne(
+    { email: protectedAdmin.email.toLowerCase() },
+    { $set: { role: 'admin', isPermanentAdmin: true } },
+  )
+
+  const demoteRes = await http
+    .patch(`/api/v1/admin/users/${protectedAdmin.userId}/role`)
+    .set('Authorization', `Bearer ${admin.token}`)
+    .send({ role: 'buyer' })
+
+  assert.equal(demoteRes.status, 403)
+  assert.equal(demoteRes.body?.ok, false)
+
+  const loginRes = await http
+    .post('/api/v1/auth/login')
+    .send({ email: protectedAdmin.email, password: 'password123' })
+
+  assert.equal(loginRes.status, 200)
+  assert.equal(loginRes.body?.user?.role, 'admin')
+
+  const deleteRes = await http
+    .delete('/api/v1/auth/account')
+    .set('Authorization', `Bearer ${loginRes.body.accessToken}`)
+    .send({ password: 'password123' })
+
+  assert.equal(deleteRes.status, 403)
+  assert.equal(deleteRes.body?.ok, false)
+})
+
 test('admin: can list and update order status', async () => {
   const app = await makeApp()
   const http = agent(app)

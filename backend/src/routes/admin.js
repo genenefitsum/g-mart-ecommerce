@@ -128,7 +128,7 @@ adminRouter.get('/users', async (req, res, next) => {
     }
 
     const users = await User.find(filter)
-      .select('_id name email role createdAt updatedAt')
+      .select('_id name email role isPermanentAdmin createdAt updatedAt')
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean()
@@ -140,6 +140,7 @@ adminRouter.get('/users', async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        isPermanentAdmin: Boolean(user.isPermanentAdmin),
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       })),
@@ -165,28 +166,34 @@ adminRouter.patch('/users/:userId/role', async (req, res, next) => {
       return res.status(400).json({ ok: false, error: 'Invalid role' })
     }
 
+    const user = await User.findById(userId).select('_id role isPermanentAdmin name email')
+    if (!user) {
+      return res.status(404).json({ ok: false, error: 'User not found' })
+    }
+
+    if (user.isPermanentAdmin && role !== 'admin') {
+      return res.status(403).json({ ok: false, error: 'This admin account is permanent and cannot be demoted' })
+    }
+
     const authUserId = String(req.auth?.userId ?? '')
     if (String(userId) === authUserId && role !== 'admin') {
       return res.status(400).json({ ok: false, error: 'You cannot remove your own admin role' })
     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
       { $set: { role } },
       { returnDocument: 'after' },
     )
 
-    if (!user) {
-      return res.status(404).json({ ok: false, error: 'User not found' })
-    }
-
     return res.json({
       ok: true,
       user: {
-        id: String(user._id),
-        name: user.name,
-        email: user.email,
-        role: user.role,
+        id: String(updatedUser._id),
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        isPermanentAdmin: Boolean(updatedUser.isPermanentAdmin),
       },
     })
   } catch (err) {

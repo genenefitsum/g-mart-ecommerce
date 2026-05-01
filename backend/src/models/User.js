@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema ({
         enum: ['buyer', 'seller', 'admin'],
         default: 'buyer'
     },
+    isPermanentAdmin: {
+        type: Boolean,
+        default: false,
+    },
     sellerRatingAverage: {
         type: Number,
         default: 0,

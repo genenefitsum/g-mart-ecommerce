@@ -53,6 +53,7 @@ function formatUserResponse(user, authMethods = []) {
     name: user.name,
     email: user.email,
     role: user.role,
+    isPermanentAdmin: Boolean(user.isPermanentAdmin),
     authMethods: Array.from(new Set(authMethods.map((method) => String(method ?? '').trim()).filter(Boolean))),
   }
 }
@@ -629,6 +630,10 @@ authRouter.delete('/account', authLimiter, requireAuth, async (req, res, next) =
 
     const user = await User.findById(req.auth.userId).select('+passwordHash')
     if (!user) return res.status(401).json({ ok: false, error: 'Unauthorized' })
+
+    if (user.isPermanentAdmin) {
+      return res.status(403).json({ ok: false, error: 'This admin account is permanent and cannot be deleted' })
+    }
 
     const ok = await bcrypt.compare(password, user.passwordHash)
     if (!ok) return res.status(401).json({ ok: false, error: 'Invalid credentials' })
