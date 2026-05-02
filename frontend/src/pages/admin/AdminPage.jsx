@@ -10,7 +10,6 @@ import {
   Package,
   RefreshCcw,
   Settings,
-  ShieldCheck,
   ShoppingCart,
   Users,
 } from 'lucide-react'
@@ -141,100 +140,51 @@ function AdminShell() {
     <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.16),_transparent_50%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_42%)]" />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] flex-col xl:flex-row">
-        <aside className="hidden xl:flex xl:w-80 xl:flex-col xl:border-r xl:border-slate-800/70 xl:bg-slate-950/95 xl:px-5 xl:py-6 xl:text-slate-100 xl:backdrop-blur">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400 text-slate-950 shadow-lg shadow-amber-400/20">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] flex-col">
+        <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/88 backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
             <div>
-              <div className="text-xs uppercase tracking-[0.22em] text-slate-400">Admin workspace</div>
-              <div className="text-lg font-semibold text-white">G-mart control center</div>
+              <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Admin control center</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Operational dashboard</h1>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" variant="outline" onClick={() => navigate('/')} className="rounded-full">
+                Back to store
+              </Button>
+              <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600">
+                {user?.name || user?.email || 'Admin'}
+              </div>
             </div>
           </div>
 
-          <nav className="mt-10 grid gap-2">
-            {ADMIN_NAV_ITEMS.map((item) => {
-              const Icon = item.icon
-              return (
-                <NavLink
-                  key={item.to || 'overview'}
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) => [
-                    'flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-medium transition',
-                    isActive
-                      ? 'border-white/15 bg-white/10 text-white shadow-lg shadow-black/10'
-                      : 'border-transparent bg-white/0 text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white',
-                  ].join(' ')}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </NavLink>
-              )
-            })}
-          </nav>
-
-          <div className="mt-auto rounded-3xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Signed in as</div>
-            <div className="mt-2 text-sm font-semibold text-white">{user?.name || user?.email || 'Admin'}</div>
-            <div className="mt-1 text-xs text-slate-300">{String(user?.role ?? 'admin')}</div>
-            <Button
-              type="button"
-              className="mt-4 w-full bg-white text-slate-950 hover:bg-slate-100"
-              onClick={() => navigate('/')}
-            >
-              Back to store
-            </Button>
+          <div className="border-t border-slate-200/70 px-4 py-3 sm:px-6 lg:hidden">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {ADMIN_NAV_ITEMS.map((item) => {
+                const Icon = item.icon
+                return (
+                  <NavLink
+                    key={item.to || 'overview-mobile'}
+                    to={item.to}
+                    end={item.end}
+                    className={({ isActive }) => [
+                      'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap transition',
+                      isActive
+                        ? 'border-slate-950 bg-slate-950 text-white'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900',
+                    ].join(' ')}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                )
+              })}
+            </div>
           </div>
-        </aside>
+        </header>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/88 backdrop-blur">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Admin control center</p>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Operational dashboard</h1>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" variant="outline" onClick={() => navigate('/')} className="rounded-full">
-                  Back to store
-                </Button>
-                <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600">
-                  {user?.name || user?.email || 'Admin'}
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-slate-200/70 px-4 py-3 sm:px-6 lg:hidden">
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {ADMIN_NAV_ITEMS.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <NavLink
-                      key={item.to || 'overview-mobile'}
-                      to={item.to}
-                      end={item.end}
-                      className={({ isActive }) => [
-                        'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap transition',
-                        isActive
-                          ? 'border-slate-950 bg-slate-950 text-white'
-                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900',
-                      ].join(' ')}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  )
-                })}
-              </div>
-            </div>
-          </header>
-
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-            <Outlet />
-          </main>
-        </div>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <Outlet />
+        </main>
       </div>
     </div>
   )
