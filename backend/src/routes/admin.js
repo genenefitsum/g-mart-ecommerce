@@ -109,6 +109,148 @@ function toAdminProductShape(product) {
   }
 }
 
+function toAdminOrderSummaryShape(order) {
+  const plain = order && typeof order === 'object' ? order : {}
+  const buyer = plain.userId && typeof plain.userId === 'object' ? plain.userId : {}
+
+  return {
+    id: String(plain._id ?? ''),
+    subtotal: Number(plain.subtotal ?? 0),
+    currency: String(plain.currency ?? 'ETB'),
+    status: String(plain.status ?? ''),
+    itemCount: Array.isArray(plain.items) ? plain.items.length : 0,
+    createdAt: plain.createdAt,
+    updatedAt: plain.updatedAt,
+    buyer: {
+      id: String(buyer._id ?? plain.userId ?? ''),
+      name: String(buyer.name ?? ''),
+      email: String(buyer.email ?? ''),
+      role: String(buyer.role ?? ''),
+    },
+  }
+}
+
+function toAdminOrderDetailShape(order) {
+  const summary = toAdminOrderSummaryShape(order)
+  const plain = order && typeof order === 'object' ? order : {}
+
+  return {
+    ...summary,
+    shipping: {
+      name: String(plain.shipping?.name ?? ''),
+      phone: String(plain.shipping?.phone ?? ''),
+      addressLine1: String(plain.shipping?.addressLine1 ?? ''),
+      city: String(plain.shipping?.city ?? ''),
+      notes: String(plain.shipping?.notes ?? ''),
+    },
+    payment: {
+      method: String(plain.payment?.method ?? ''),
+      transactionRef: String(plain.payment?.transactionRef ?? ''),
+      proofImageUrl: String(plain.payment?.proofImageUrl ?? ''),
+      submittedAt: plain.payment?.submittedAt ?? null,
+    },
+    recipient: {
+      telebirrPhone: String(plain.recipient?.telebirrPhone ?? ''),
+      bankName: String(plain.recipient?.bankName ?? ''),
+      bankAccountNumber: String(plain.recipient?.bankAccountNumber ?? ''),
+      bankAccountName: String(plain.recipient?.bankAccountName ?? ''),
+    },
+    items: Array.isArray(plain.items)
+      ? plain.items.map((item) => {
+        const product = item?.productId && typeof item.productId === 'object' ? item.productId : null
+
+        return {
+          productId: String(item?.productId?._id ?? item?.productId ?? ''),
+          name: String(item?.name ?? ''),
+          unitPrice: Number(item?.unitPrice ?? 0),
+          quantity: Number(item?.quantity ?? 0),
+          imageUrl: String(item?.imageUrl ?? ''),
+          product: product
+            ? {
+              id: String(product._id ?? ''),
+              name: String(product.name ?? ''),
+              category: String(product.category ?? ''),
+              price: Number(product.price ?? 0),
+              imageUrl: String(product.imageUrl ?? ''),
+              isAdminProduct: Boolean(product.isAdminProduct),
+            }
+            : null,
+        }
+      })
+      : [],
+  }
+}
+
+// GET /api/v1/admin/summary
+adminRouter.get('/summary', async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const [
+      userCount,
+      orderCount,
+      productCount,
+      sellerProductCount,
+      adminProductCount,
+      revenueSummary,
+      pendingPaymentCount,
+      paymentSubmittedCount,
+      processingCount,
+      completedCount,
+      cancelledCount,
+      recentOrders,
+      recentProducts,
+    ] = await Promise.all([
+      User.countDocuments(),
+      Order.countDocuments(),
+      Product.countDocuments(),
+      Product.countDocuments({ sellerUserId: { $ne: null } }),
+      Product.countDocuments({ isAdminProduct: true }),
+      Order.aggregate([{ $group: { _id: null, totalRevenue: { $sum: '$subtotal' } } }]),
+      Order.countDocuments({ status: 'pending_payment' }),
+      Order.countDocuments({ status: 'payment_submitted' }),
+      Order.countDocuments({ status: 'processing' }),
+      Order.countDocuments({ status: 'completed' }),
+      Order.countDocuments({ status: 'cancelled' }),
+      Order.find()
+        .select('_id userId subtotal currency status createdAt updatedAt items')
+        .populate('userId', '_id name email role')
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+      Product.find()
+        .select('_id name category description contactPhone price imageUrl images sellerUserId isAdminProduct createdAt updatedAt')
+        .populate('sellerUserId', '_id name email role')
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+    ])
+
+    return res.json({
+      ok: true,
+      summary: {
+        counts: {
+          users: userCount,
+          orders: orderCount,
+          products: productCount,
+          sellerProducts: sellerProductCount,
+          adminProducts: adminProductCount,
+          revenueTotal: Number(revenueSummary?.[0]?.totalRevenue ?? 0),
+          pendingPayment: pendingPaymentCount,
+          paymentSubmitted: paymentSubmittedCount,
+          processing: processingCount,
+          completed: completedCount,
+          cancelled: cancelledCount,
+        },
+        recentOrders: recentOrders.map(toAdminOrderSummaryShape),
+        recentProducts: recentProducts.map(toAdminProductShape),
+      },
+    })
+  } catch (err) {
+    return next(err)
+  }
+})
+
 // GET /api/v1/admin/users
 adminRouter.get('/users', async (req, res, next) => {
   try {
@@ -219,6 +361,31 @@ adminRouter.get('/orders', async (req, res, next) => {
       .lean()
 
     return res.json({ ok: true, orders })
+  } catch (err) {
+    return next(err)
+  }
+})
+
+// GET /api/v1/admin/orders/:orderId
+adminRouter.get('/orders/:orderId', async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const orderId = String(req.params?.orderId ?? '').trim()
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid orderId' })
+    }
+
+    const order = await Order.findById(orderId)
+      .populate('userId', '_id name email role isPermanentAdmin')
+      .populate('items.productId', '_id name category price imageUrl isAdminProduct')
+      .lean()
+
+    if (!order) {
+      return res.status(404).json({ ok: false, error: 'Order not found' })
+    }
+
+    return res.json({ ok: true, order: toAdminOrderDetailShape(order) })
   } catch (err) {
     return next(err)
   }

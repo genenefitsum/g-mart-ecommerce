@@ -328,6 +328,11 @@ export async function apiAdminListOrders({ status, limit } = {}) {
   return res.data
 }
 
+export async function apiAdminGetOrder(orderId) {
+  const res = await api.get(`/admin/orders/${orderId}`)
+  return res.data
+}
+
 export async function apiAdminListProducts({ q, category, sellerId, limit } = {}) {
   const params = {}
   if (q) params.q = q
@@ -346,6 +351,11 @@ export async function apiAdminUpdateOrderStatus(orderId, status) {
 
 export async function apiAdminGetSettings() {
   const res = await api.get('/admin/settings')
+  return res.data
+}
+
+export async function apiAdminGetSummary() {
+  const res = await api.get('/admin/summary')
   return res.data
 }
 

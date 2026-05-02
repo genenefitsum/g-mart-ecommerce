@@ -265,6 +265,52 @@ test('admin: can list and update order status', async () => {
   assert.equal(updateStatusRes.body?.order?.status, 'processing')
 })
 
+test('admin: can fetch summary and detailed order review data', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const admin = await createAdminAndToken(http)
+  const buyer = await createBuyerAndToken(http)
+  const product = await createAdminProduct()
+
+  const orderRes = await http
+    .post('/api/v1/orders')
+    .set('Authorization', `Bearer ${buyer.token}`)
+    .send({
+      items: [{ productId: String(product._id), quantity: 1 }],
+      shipping: {
+        name: 'Buyer Name',
+        phone: '+251900000001',
+        addressLine1: 'Street 1',
+        city: 'Addis Ababa',
+      },
+      payment: { method: 'telebirr', transactionRef: 'TX-ADMIN-SUMMARY' },
+    })
+
+  assert.equal(orderRes.status, 201)
+  const orderId = String(orderRes.body?.order?._id)
+
+  const summaryRes = await http
+    .get('/api/v1/admin/summary')
+    .set('Authorization', `Bearer ${admin.token}`)
+
+  assert.equal(summaryRes.status, 200)
+  assert.equal(summaryRes.body?.ok, true)
+  assert.ok(Number(summaryRes.body?.summary?.counts?.orders ?? 0) >= 1)
+  assert.ok(Array.isArray(summaryRes.body?.summary?.recentOrders))
+  assert.ok(summaryRes.body?.summary?.recentOrders.some((order) => order.id === orderId))
+
+  const detailRes = await http
+    .get(`/api/v1/admin/orders/${orderId}`)
+    .set('Authorization', `Bearer ${admin.token}`)
+
+  assert.equal(detailRes.status, 200)
+  assert.equal(detailRes.body?.ok, true)
+  assert.equal(detailRes.body?.order?.id, orderId)
+  assert.equal(detailRes.body?.order?.buyer?.email, buyer.email.toLowerCase())
+  assert.equal(detailRes.body?.order?.items?.[0]?.name, 'Admin Catalog Product')
+})
+
 test('admin: can list seller products and filter by seller', async () => {
   const app = await makeApp()
   const http = agent(app)

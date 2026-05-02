@@ -145,7 +145,7 @@ function App() {
             element={<Account onRequireAuth={openAuth} />}
           />
           <Route
-            path="/admin"
+            path="/admin/*"
             element={
               isAdminUser(user) ? (
                 <Admin />
