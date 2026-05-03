@@ -141,7 +141,7 @@ function AdminShell() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.16),_transparent_50%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_42%)]" />
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] flex-col">
-        <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/88 backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-slate-200/60 bg-white/78 backdrop-blur-xl shadow-[0_1px_0_rgba(15,23,42,0.04)]">
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Admin control center</p>
@@ -182,7 +182,7 @@ function AdminShell() {
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">
           <Outlet />
         </main>
       </div>
