@@ -37,6 +37,7 @@ function App() {
   const { user, isLoading } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const showGlobalHeader = !location.pathname.startsWith('/admin')
   const openAuth = useCallback((redirectTo = '') => {
     requestSignIn({ redirectTo })
   }, [])
@@ -108,12 +109,14 @@ function App() {
     
     <>
       <WishlistProvider onRequireAuth={openAuth}>
-        <Header
-          searchQuery={searchQuery}
-          onSearch={setSearchQuery}
-          onAuthOpen={openAuth}
-          onProductCreated={() => setProductsRefreshKey((k) => k + 1)}
-        />
+        {showGlobalHeader ? (
+          <Header
+            searchQuery={searchQuery}
+            onSearch={setSearchQuery}
+            onAuthOpen={openAuth}
+            onProductCreated={() => setProductsRefreshKey((k) => k + 1)}
+          />
+        ) : null}
 
         <Routes>
           <Route
