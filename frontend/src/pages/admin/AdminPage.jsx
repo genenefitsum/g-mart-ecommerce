@@ -138,7 +138,7 @@ function AdminShell() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.16),_transparent_50%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_42%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-slate-100/40" />
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] flex-col">
         <header className="sticky top-0 z-20 border-b border-slate-200/60 bg-white/78 backdrop-blur-xl shadow-[0_1px_0_rgba(15,23,42,0.04)]">
