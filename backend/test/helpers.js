@@ -5,10 +5,10 @@ export async function makeApp() {
   return createServer()
 }
 
-export async function registerAndGetToken(agent, { name, email, password }) {
+export async function registerAndGetToken(agent, { name, email, password, termsAndPrivacyAccepted = true }) {
   const res = await agent
     .post('/api/v1/auth/register')
-    .send({ name, email, password })
+    .send({ name, email, password, termsAndPrivacyAccepted })
 
   return { status: res.status, body: res.body }
 }

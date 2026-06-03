@@ -121,13 +121,13 @@ export async function apiLogin({ email, password }) {
   return res.data
 }
 
-export async function apiRegister({ name, email, password }) {
-  const res = await api.post('/auth/register', { name, email, password })
+export async function apiRegister({ name, email, password, termsAndPrivacyAccepted }) {
+  const res = await api.post('/auth/register', { name, email, password, termsAndPrivacyAccepted })
   return res.data
 }
 
-export async function apiGoogleLogin({ credential }) {
-  const res = await api.post('/auth/google', { credential })
+export async function apiGoogleLogin({ credential, termsAndPrivacyAccepted }) {
+  const res = await api.post('/auth/google', { credential, termsAndPrivacyAccepted })
   return res.data
 }
 

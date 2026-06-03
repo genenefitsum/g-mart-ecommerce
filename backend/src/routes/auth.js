@@ -54,6 +54,7 @@ function formatUserResponse(user, authMethods = []) {
     email: user.email,
     role: user.role,
     isPermanentAdmin: Boolean(user.isPermanentAdmin),
+    termsAndPrivacyAccepted: Boolean(user.termsAndPrivacyAccepted),
     authMethods: Array.from(new Set(authMethods.map((method) => String(method ?? '').trim()).filter(Boolean))),
   }
 }
@@ -97,6 +98,15 @@ function mongoGuard(req, res) {
     return false
   }
   return true
+}
+
+function isConsentAccepted(value) {
+  if (value === true) return true
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
+  }
+  return false
 }
 
 function setRefreshCookie(res, refreshToken) {
@@ -180,7 +190,7 @@ async function verifyGoogleCredential(credential) {
   }
 }
 
-async function findOrCreateUserForGoogleIdentity(profile) {
+async function findOrCreateUserForGoogleIdentity(profile, { termsAndPrivacyAccepted } = {}) {
   const { email, providerUserId, displayName, avatarUrl, emailVerified } = profile
 
   let googleIdentity = await AuthIdentity.findOne({
@@ -212,12 +222,20 @@ async function findOrCreateUserForGoogleIdentity(profile) {
   }
 
   if (!user) {
+    if (!isConsentAccepted(termsAndPrivacyAccepted)) {
+      const err = new Error('You must agree to the Terms and Privacy Policy before creating an account')
+      err.statusCode = 400
+      throw err
+    }
+
     const fallbackPasswordHash = await bcrypt.hash(`${providerUserId}:${Date.now()}`, 12)
     user = await User.create({
       name: displayName || email.split('@')[0],
       email,
       passwordHash: fallbackPasswordHash,
       role: 'buyer',
+      termsAndPrivacyAccepted: true,
+      termsAndPrivacyAcceptedAt: new Date(),
     })
   }
 
@@ -268,10 +286,14 @@ authRouter.post('/register', authLimiter, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
-    const { name, email, password } = req.body ?? {}
+    const { name, email, password, termsAndPrivacyAccepted } = req.body ?? {}
 
     if (!name || !email || !password) {
       return res.status(400).json({ ok: false, error: 'Missing fields' })
+    }
+
+    if (!isConsentAccepted(termsAndPrivacyAccepted)) {
+      return res.status(400).json({ ok: false, error: 'You must agree to the Terms and Privacy Policy' })
     }
 
     if (String(password).length < 8) {
@@ -300,6 +322,8 @@ authRouter.post('/register', authLimiter, async (req, res, next) => {
       email: emailLower,
       passwordHash,
       role: 'buyer',
+      termsAndPrivacyAccepted: true,
+      termsAndPrivacyAcceptedAt: new Date(),
     })
 
     const authIdentity = await AuthIdentity.create({
@@ -383,12 +407,15 @@ authRouter.post('/google', authLimiter, async (req, res, next) => {
     if (!mongoGuard(req, res)) return
 
     const credential = String(req.body?.credential ?? '').trim()
+    const termsAndPrivacyAccepted = req.body?.termsAndPrivacyAccepted
     if (!credential) {
       return res.status(400).json({ ok: false, error: 'Missing Google credential' })
     }
 
     const googleProfile = await verifyGoogleCredential(credential)
-    const { user, authIdentity } = await findOrCreateUserForGoogleIdentity(googleProfile)
+    const { user, authIdentity } = await findOrCreateUserForGoogleIdentity(googleProfile, {
+      termsAndPrivacyAccepted,
+    })
 
     const { accessToken, refreshToken } = await issueTokens({ user, authIdentity })
     setRefreshCookie(res, refreshToken)

@@ -113,11 +113,11 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const register = async ({ name, email, password }) => {
+  const register = async ({ name, email, password, termsAndPrivacyAccepted }) => {
     setIsLoading(true)
     try {
       setError('')
-      const data = await apiRegister({ name, email, password })
+      const data = await apiRegister({ name, email, password, termsAndPrivacyAccepted })
       if (!data?.ok || !data?.accessToken) {
         throw new Error(data?.error || 'Signup failed')
       }
@@ -144,11 +144,11 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const googleLogin = async ({ credential }) => {
+  const googleLogin = async ({ credential, termsAndPrivacyAccepted }) => {
     setIsLoading(true)
     try {
       setError('')
-      const data = await apiGoogleLogin({ credential })
+      const data = await apiGoogleLogin({ credential, termsAndPrivacyAccepted })
       if (!data?.ok || !data?.accessToken) {
         throw new Error(data?.error || 'Google sign-in failed')
       }

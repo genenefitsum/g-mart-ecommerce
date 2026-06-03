@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff, ShoppingBag } from 'lucide-react'
 import { FcGoogle } from 'react-icons/fc'
+import { Link } from 'react-router-dom'
 
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -17,17 +18,25 @@ export default function AuthScreen({ onSuccess }) {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [googleError, setGoogleError] = useState('')
+  const [consentAccepted, setConsentAccepted] = useState(false)
+  const [consentError, setConsentError] = useState('')
 
   const GOOGLE_SCRIPT_URL = 'https://accounts.google.com/gsi/client'
   const googleClientId = String(import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim()
 
   const onSubmit = async (e) => {
     e.preventDefault()
+    setConsentError('')
+
+    if (mode === 'signup' && !consentAccepted) {
+      setConsentError('Please agree to the Terms and Privacy Policy before creating an account.')
+      return
+    }
 
     const result =
       mode === 'login'
         ? await login({ email, password })
-        : await register({ name, email, password })
+        : await register({ name, email, password, termsAndPrivacyAccepted: consentAccepted })
 
     if (result?.ok && typeof onSuccess === 'function') {
       onSuccess()
@@ -63,6 +72,11 @@ export default function AuthScreen({ onSuccess }) {
   const onGoogleSignIn = async () => {
     setGoogleError('')
 
+    if (mode === 'signup' && !consentAccepted) {
+      setGoogleError('Please agree to the Terms and Privacy Policy before creating an account.')
+      return
+    }
+
     if (!googleClientId) {
       setGoogleError('Google sign-in is not configured for this app.')
       return
@@ -86,7 +100,10 @@ export default function AuthScreen({ onSuccess }) {
             return
           }
 
-          const result = await googleLogin({ credential })
+          const result = await googleLogin({
+            credential,
+            termsAndPrivacyAccepted: mode === 'signup' ? consentAccepted : false,
+          })
           if (result?.ok && typeof onSuccess === 'function') {
             onSuccess()
             return
@@ -208,11 +225,43 @@ export default function AuthScreen({ onSuccess }) {
             </div>
           </div>
 
+          {mode === 'signup' ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <label className="flex items-start gap-3 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={consentAccepted}
+                  onChange={(e) => {
+                    setConsentAccepted(e.target.checked)
+                    if (consentError) setConsentError('')
+                  }}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="leading-6">
+                  I agree to the{' '}
+                  <Link to="/terms" target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline">
+                    Terms and Conditions
+                  </Link>{' '}
+                  and{' '}
+                  <Link to="/privacy" target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline">
+                    Privacy Policy
+                  </Link>
+                  .
+                </span>
+              </label>
+            </div>
+          ) : null}
+
+          {consentError ? <div className="text-sm text-red-600">{consentError}</div> : null}
           {error ? <div className="text-sm text-red-600">{toErrorMessage(error, '')}</div> : null}
           {googleError ? <div className="text-sm text-red-600">{googleError}</div> : null}
 
-          <Button type="submit" className="w-full bg-blue-600 text-white hover:bg-blue-700" disabled={isLoading}>
-            {isLoading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Sign Up'}
+          <Button
+            type="submit"
+            className="w-full bg-blue-600 text-white hover:bg-blue-700"
+            disabled={isLoading || (mode === 'signup' && !consentAccepted)}
+          >
+            {isLoading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Create Account'}
           </Button>
 
           <div className="pt-2">
@@ -224,7 +273,7 @@ export default function AuthScreen({ onSuccess }) {
               variant="outline"
               className="mt-2 w-full"
               onClick={onGoogleSignIn}
-              disabled={isLoading}
+              disabled={isLoading || (mode === 'signup' && !consentAccepted)}
             >
               <FcGoogle className="h-4 w-4" />
               Continue with Google
@@ -234,7 +283,15 @@ export default function AuthScreen({ onSuccess }) {
       </div>
 
       <div className="mt-5 text-center text-xs text-gray-500">
-        By continuing, you agree to our Terms of Service and Privacy Policy.
+        By continuing, you agree to our{' '}
+        <Link to="/terms" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-gray-700">
+          Terms and Conditions
+        </Link>{' '}
+        and{' '}
+        <Link to="/privacy" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-gray-700">
+          Privacy Policy
+        </Link>
+        .
       </div>
     </div>
   )

@@ -33,6 +33,7 @@ test('auth: register -> me -> logout blocks refresh', async () => {
   assert.equal(reg.status, 201)
   assert.equal(reg.body?.ok, true)
   assert.ok(reg.body?.accessToken)
+  assert.equal(reg.body?.user?.termsAndPrivacyAccepted, true)
 
   const token = reg.body.accessToken
 
@@ -129,6 +130,23 @@ test('account: delete account prevents future login', async () => {
   assert.equal(loginRes.status, 401)
 })
 
+test('auth: register requires accepting terms and privacy policy', async () => {
+  const app = await makeApp()
+  const http = agent(app)
+
+  const email = uniqueEmail()
+
+  const res = await http.post('/api/v1/auth/register').send({
+    name: 'Consent Missing',
+    email,
+    password: 'password123',
+  })
+
+  assert.equal(res.status, 400)
+  assert.equal(res.body?.ok, false)
+  assert.equal(res.body?.error, 'You must agree to the Terms and Privacy Policy')
+})
+
 test('auth: google account can set a local password and then log in with email/password', async () => {
   const app = await makeApp()
   const http = agent(app)
@@ -145,6 +163,8 @@ test('auth: google account can set a local password and then log in with email/p
     email,
     passwordHash,
     role: 'buyer',
+    termsAndPrivacyAccepted: true,
+    termsAndPrivacyAcceptedAt: new Date(),
   })
 
   await AuthIdentity.create({

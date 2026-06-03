@@ -27,6 +27,18 @@ const userSchema = new mongoose.Schema ({
         type: Boolean,
         default: false,
     },
+    termsAndPrivacyAccepted: {
+        type: Boolean,
+        required: true,
+        validate: {
+            validator: (value) => value === true,
+            message: 'Terms and Privacy Policy acceptance is required',
+        },
+    },
+    termsAndPrivacyAcceptedAt: {
+        type: Date,
+        default: null,
+    },
     sellerRatingAverage: {
         type: Number,
         default: 0,
