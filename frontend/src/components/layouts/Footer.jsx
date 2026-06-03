@@ -12,7 +12,7 @@ const Footer = () => {
                             <div>
                                 <h2 className="text-2xl lg:text-3xl font-bold font-montserrat">Get in touch</h2>
                                 <p className="mt-4 text-white/70 text-sm font-montserrat max-w-md">
-                                    Have a question or feedback? Send us a message — we’d love to hear from you.
+                                    Have a question or feedback? Send us a message we’d love to hear from you.
                                 </p>
 
                                 <form
