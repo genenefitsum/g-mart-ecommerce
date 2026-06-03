@@ -1,24 +1,7 @@
+import { Link } from 'react-router-dom'
 import { FaInstagram, FaWhatsapp, FaXTwitter } from "react-icons/fa6";
 
 const Footer = () => {
-    const handleFooterNavClick = (e) => {
-        const href = e?.currentTarget?.getAttribute?.('href')
-        if (!href || href === '#' || !href.startsWith('#')) return
-
-        const target = document.querySelector(href)
-        if (!target) return
-
-        e.preventDefault()
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-
-        // Keep the URL hash in sync without triggering an instant jump.
-        try {
-            window.history.pushState(null, '', href)
-        } catch {
-            // no-op
-        }
-    }
-
     return (
         <>
             <section id="contact" className="bg-black text-white">
@@ -133,17 +116,17 @@ const Footer = () => {
                                     <div>
                                         <p className="text-sm font-semibold font-montserrat">Shop</p>
                                         <ul className="mt-3 space-y-2 text-sm text-white/70 font-montserrat">
-                                            <li><a className="hover:text-white" href="#products" onClick={handleFooterNavClick}>Products</a></li>
-                                            <li><a className="hover:text-white" href="#categories" onClick={handleFooterNavClick}>Categories</a></li>
-                                            <li><a className="hover:text-white" href="#">New arrivals</a></li>
+                                            <li><Link className="hover:text-white" to="/#products">Products</Link></li>
+                                            <li><Link className="hover:text-white" to="/#categories">Categories</Link></li>
+                                            <li><Link className="hover:text-white" to="/#products">New arrivals</Link></li>
                                         </ul>
                                     </div>
                                     <div>
                                         <p className="text-sm font-semibold font-montserrat">Support</p>
                                         <ul className="mt-3 space-y-2 text-sm text-white/70 font-montserrat">
-                                            <li><a className="hover:text-white" href="#">Shipping</a></li>
-                                            <li><a className="hover:text-white" href="#">Returns</a></li>
-                                            <li><a className="hover:text-white" href="#">Privacy</a></li>
+                                            <li><Link className="hover:text-white" to="/terms#shipping">Shipping</Link></li>
+                                            <li><Link className="hover:text-white" to="/terms#returns">Returns</Link></li>
+                                            <li><Link className="hover:text-white" to="/privacy">Privacy</Link></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -155,9 +138,9 @@ const Footer = () => {
                                 © {new Date().getFullYear()} G-mart. All rights reserved.
                             </p>
                             <div className="flex items-center gap-5 text-sm text-white/60 font-montserrat">
-                                <a className="hover:text-white" href="#">Terms</a>
-                                <a className="hover:text-white" href="#">Privacy</a>
-                                <a className="hover:text-white" href="#">Cookies</a>
+                                <Link className="hover:text-white" to="/terms">Terms</Link>
+                                <Link className="hover:text-white" to="/privacy">Privacy</Link>
+                                <Link className="hover:text-white" to="/privacy#cookies">Cookies</Link>
                             </div>
                         </div>
                     </div>

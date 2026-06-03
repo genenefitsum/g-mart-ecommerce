@@ -16,6 +16,8 @@ import Checkout from './pages/Checkout.jsx'
 import ProductDetails from './pages/ProductDetails.jsx'
 import Account from './pages/Account.jsx'
 import Admin from './pages/Admin.jsx'
+import Terms from './pages/Terms.jsx'
+import Privacy from './pages/Privacy.jsx'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
@@ -142,6 +144,8 @@ function App() {
             element={<CategoryProductsPage searchQuery={searchQuery} />}
           />
           <Route path="/product/:productId" element={<ProductDetails />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route
             path="/account"
