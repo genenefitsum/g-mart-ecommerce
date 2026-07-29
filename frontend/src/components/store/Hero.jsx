@@ -54,7 +54,7 @@ const HeroSection = () => {
           aria-hidden="true"
           style={{ imageRendering: "auto" }}
  className={`absolute inset-0 h-full w-full object-cover object-center
-  transition-opacity duration-[1800ms] ease-linear
+  transition-opacity [transition-duration:1800ms] ease-linear
   will-change-transform will-change-opacity
   transform-gpu backface-visibility-hidden
   ${
