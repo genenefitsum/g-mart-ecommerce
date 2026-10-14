@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 
 import { useAuth } from '@/context/AuthContext'
@@ -28,6 +28,7 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('telebirr')
   const [transactionRef, setTransactionRef] = useState('')
   const [proofFile, setProofFile] = useState(null)
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const [recipient, setRecipient] = useState(null)
   const [recipientError, setRecipientError] = useState('')
 
@@ -84,7 +85,8 @@ export default function Checkout() {
     Boolean(proofFile) &&
     Boolean(recipient) &&
     (recipient?.hasTelebirr || recipient?.hasBank) &&
-    Boolean(methodAvailable)
+    Boolean(methodAvailable) &&
+    Boolean(termsAccepted)
 
   const onBack = () => {
     if (window.history.length > 1) {
@@ -130,6 +132,11 @@ export default function Checkout() {
       return
     }
 
+    if (!termsAccepted) {
+      setError('You must agree to the Terms of Sale and Return Policy before placing an order.')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -146,6 +153,7 @@ export default function Checkout() {
           method: paymentMethod,
           transactionRef,
         },
+        termsAccepted: true,
       })
 
       if (!createRes?.ok || !createRes?.order?._id) {
@@ -351,6 +359,36 @@ export default function Checkout() {
               </div>
             </div>
           </Card>
+
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => {
+                  setTermsAccepted(e.target.checked)
+                  if (error) setError('')
+                }}
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                required
+              />
+              <span className="text-xs leading-5 text-slate-700 font-montserrat">
+                I confirm that my delivery details are correct and I agree to G-mart&apos;s{' '}
+                <Link to="/terms" target="_blank" className="font-semibold text-blue-600 underline hover:text-blue-700">
+                  Terms of Sale
+                </Link>
+                ,{' '}
+                <Link to="/shipping" target="_blank" className="font-semibold text-blue-600 underline hover:text-blue-700">
+                  Shipping Policy
+                </Link>
+                , and{' '}
+                <Link to="/returns" target="_blank" className="font-semibold text-blue-600 underline hover:text-blue-700">
+                  Return &amp; Refund Policy
+                </Link>
+                . I understand that submitted payment receipts are verified prior to order dispatch.
+              </span>
+            </label>
+          </div>
 
           {error ? <div className="text-sm text-red-600">{toErrorMessage(error, '')}</div> : null}
           {successOrderId ? (
