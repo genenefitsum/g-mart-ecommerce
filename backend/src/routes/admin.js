@@ -74,6 +74,21 @@ function toContentShape(value) {
   }
 }
 
+function toLegalShape(value) {
+  const legal = value && typeof value === 'object' ? value : {}
+  return {
+    companyName: String(legal.companyName ?? 'G-mart E-Commerce PLC').trim() || 'G-mart E-Commerce PLC',
+    registeredAddress: String(legal.registeredAddress ?? 'Bole Sub-City, Addis Ababa, Ethiopia').trim() || 'Bole Sub-City, Addis Ababa, Ethiopia',
+    registrationNumber: String(legal.registrationNumber ?? 'ET-MTR-2024-00918').trim(),
+    taxId: String(legal.taxId ?? 'TIN-008291823').trim(),
+    legalEmail: String(legal.legalEmail ?? 'gmartofficial@gmail.com').trim() || 'gmartofficial@gmail.com',
+    effectiveDate: String(legal.effectiveDate ?? 'October 14, 2026').trim() || 'October 14, 2026',
+    termsVersion: String(legal.termsVersion ?? '1.0').trim() || '1.0',
+    privacyVersion: String(legal.privacyVersion ?? '1.0').trim() || '1.0',
+    returnWindowDays: Number.isFinite(Number(legal.returnWindowDays)) ? Number(legal.returnWindowDays) : 7,
+  }
+}
+
 async function getOrCreateMainSettings() {
   let settings = await SiteSettings.findOne({ key: 'main' })
   if (settings) return settings
@@ -471,6 +486,7 @@ adminRouter.get('/settings', async (req, res, next) => {
       settings: {
         paymentRecipient: toRecipientShape(settings.paymentRecipient),
         content: toContentShape(settings.content),
+        legal: toLegalShape(settings.legal),
       },
     })
   } catch (err) {
@@ -479,7 +495,7 @@ adminRouter.get('/settings', async (req, res, next) => {
 })
 
 // PATCH /api/v1/admin/settings
-// body: { paymentRecipient?: {...}, content?: {...} }
+// body: { paymentRecipient?: {...}, content?: {...}, legal?: {...} }
 adminRouter.patch('/settings', async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
@@ -506,6 +522,23 @@ adminRouter.patch('/settings', async (req, res, next) => {
       }
     }
 
+    if (req.body?.legal && typeof req.body.legal === 'object') {
+      settings.legal = {
+        ...(settings.legal?.toObject?.() ?? settings.legal ?? {}),
+        companyName: String(req.body.legal.companyName ?? settings.legal?.companyName ?? 'G-mart E-Commerce PLC').trim() || 'G-mart E-Commerce PLC',
+        registeredAddress: String(req.body.legal.registeredAddress ?? settings.legal?.registeredAddress ?? 'Bole Sub-City, Addis Ababa, Ethiopia').trim() || 'Bole Sub-City, Addis Ababa, Ethiopia',
+        registrationNumber: String(req.body.legal.registrationNumber ?? settings.legal?.registrationNumber ?? '').trim(),
+        taxId: String(req.body.legal.taxId ?? settings.legal?.taxId ?? '').trim(),
+        legalEmail: String(req.body.legal.legalEmail ?? settings.legal?.legalEmail ?? 'gmartofficial@gmail.com').trim() || 'gmartofficial@gmail.com',
+        effectiveDate: String(req.body.legal.effectiveDate ?? settings.legal?.effectiveDate ?? 'October 14, 2026').trim() || 'October 14, 2026',
+        termsVersion: String(req.body.legal.termsVersion ?? settings.legal?.termsVersion ?? '1.0').trim() || '1.0',
+        privacyVersion: String(req.body.legal.privacyVersion ?? settings.legal?.privacyVersion ?? '1.0').trim() || '1.0',
+        returnWindowDays: Number.isFinite(Number(req.body.legal.returnWindowDays))
+          ? Math.max(0, Math.min(365, Number(req.body.legal.returnWindowDays)))
+          : (settings.legal?.returnWindowDays ?? 7),
+      }
+    }
+
     await settings.save()
 
     return res.json({
@@ -513,6 +546,7 @@ adminRouter.patch('/settings', async (req, res, next) => {
       settings: {
         paymentRecipient: toRecipientShape(settings.paymentRecipient),
         content: toContentShape(settings.content),
+        legal: toLegalShape(settings.legal),
       },
     })
   } catch (err) {
