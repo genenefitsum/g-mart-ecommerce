@@ -3,66 +3,85 @@ import LegalPage from '../components/legal/LegalPage.jsx'
 const sections = [
     {
         id: 'overview',
-        title: '1. What this policy covers',
+        title: '1. Data Controller and Scope',
         paragraphs: [
-            'This Privacy Policy explains how G-mart collects, uses, shares, and protects information when you browse the site, create an account, or place an order.',
-            'By using G-mart, you agree to the collection and use of information as described here.',
+            'This Privacy Policy outlines how G-mart E-Commerce PLC ("G-mart", "we", "us", or "our") collects, processes, stores, and safeguards your personal data when you visit our marketplace, create an account, purchase products, or interact with our customer support.',
+            'We act as the Data Controller responsible for your personal information. If you have questions about our data practices or wish to exercise your privacy rights, please contact our Data Protection Office at gmartofficial@gmail.com.',
         ],
     },
     {
-        id: 'information',
-        title: '2. Information we collect',
+        id: 'collection',
+        title: '2. Information We Collect',
         paragraphs: [
-            'We may collect information you provide directly, such as your name, email address, shipping details, account credentials, and order-related messages.',
-            'We may also collect limited technical information automatically, such as device details, browser type, pages visited, and basic usage activity that helps us operate and improve the site.',
+            'We collect personal information necessary to deliver our eCommerce and marketplace services:',
+            'Account Information: Full name, email address, hashed passwords, and contact preferences.',
+            'Order and Delivery Details: Recipient name, phone number, physical delivery address, city, and special drop-off instructions.',
+            'Payment and Transaction Records: Payment method selected (Telebirr or bank transfer), transaction reference numbers, uploaded payment proof images, and order timestamps. Note: G-mart does not store sensitive banking passwords or Telebirr PINs.',
+            'Technical & Telemetry Data: IP address, browser type, device identifiers, session cookies, and storefront navigation history to safeguard against fraud and optimize performance.',
         ],
     },
     {
-        id: 'use',
-        title: '3. How we use information',
+        id: 'legal-basis',
+        title: '3. Legal Bases for Processing',
         paragraphs: [
-            'We use information to process orders, deliver products, manage accounts, provide customer support, detect fraud, and improve the shopping experience.',
-            'We may also use information to send service messages, respond to inquiries, and keep the platform secure and reliable.',
+            'We only process your personal data when we have a valid legal basis:',
+            'Contractual Necessity: To process your orders, fulfill deliveries, manage user accounts, and provide transactional customer support.',
+            'Consent: When you opt into non-essential cookies, promotional communications, or explicitly provide consent upon registration.',
+            'Legal Obligation: To maintain financial and tax records, prevent money laundering, and comply with commercial regulatory inquiries.',
+            'Legitimate Interests: To detect and prevent fraudulent transactions, secure our IT infrastructure, and resolve marketplace disputes between buyers and sellers.',
         ],
     },
     {
         id: 'sharing',
-        title: '4. When we share information',
+        title: '4. Third-Party Disclosures and Service Providers',
         paragraphs: [
-            'We may share information with service providers that help us operate the store, process payments, ship orders, host the site, or provide analytics and support tools.',
-            'We may also disclose information when required by law, to protect our rights, or in connection with a business transaction such as a merger or asset transfer.',
+            'We never sell your personal information to data brokers. We only share relevant data with trusted service providers under strict data processing agreements:',
+            'Logistics & Couriers: We share delivery names, phone numbers, and addresses with delivery personnel solely to complete product handover.',
+            'Infrastructure & Hosting: Cloud hosting infrastructure (MongoDB Atlas) and secure media storage (Cloudinary for payment proofs and product images).',
+            'Legal & Regulatory Authorities: When required by applicable law, court order, or governmental inquiry.',
         ],
     },
     {
         id: 'cookies',
-        title: '5. Cookies and similar technologies',
+        title: '5. Cookies and Local Storage Technologies',
         paragraphs: [
-            'We may use cookies or similar technologies to remember preferences, maintain sessions, improve functionality, and understand how visitors use the site.',
-            'You can usually manage cookies through your browser settings, but disabling them may limit certain site features.',
+            'G-mart uses cookies and local storage tokens to provide core shopping functionality:',
+            'Essential Cookies: Necessary for user authentication, maintaining secure sessions (JWT refresh tokens), and preserving your shopping cart.',
+            'Preference Cookies: To remember your storefront preferences, filter settings, and cookie choices.',
+            'You can review and manage your cookie preferences at any time using our Cookie Preferences tool or via the Cookies link in the website footer.',
         ],
     },
     {
         id: 'retention',
-        title: '6. Data retention and security',
+        title: '6. Data Retention and Security Safeguards',
         paragraphs: [
-            'We keep personal information only as long as reasonably needed for business, legal, or operational purposes.',
-            'We use reasonable administrative, technical, and organizational safeguards to protect information, but no system is completely secure.',
+            'We retain personal information only for as long as required to fulfill the purposes outlined in this policy or to satisfy statutory accounting and tax retention periods (typically up to 5–7 years for completed sales invoices).',
+            'We implement industry-standard physical, electronic, and procedural safeguards, including password hashing with bcrypt, SSL/TLS encryption for all in-transit traffic, and restricted role-based administrative access controls.',
         ],
     },
     {
-        id: 'choices',
-        title: '7. Your choices and rights',
+        id: 'rights',
+        title: '7. Your Privacy Rights and Data Portability',
         paragraphs: [
-            'You may be able to update account details, request access to certain information, or ask us to correct or delete specific data, subject to legal and operational requirements.',
-            'If you do not want to receive non-essential messages, you can follow the unsubscribe steps in those messages or contact us directly.',
+            'Under applicable data protection laws, you possess the following rights regarding your personal information:',
+            'Right of Access & Portability: You can view your account history and download an export of your personal data directly from your Account Dashboard.',
+            'Right to Rectification: You can update your profile name and contact information at any time.',
+            'Right to Erasure ("Right to be Forgotten"): You can permanently delete your account, orders, wishlists, and credentials via the Account Settings page.',
+            'Right to Withdraw Consent: Where processing relies on consent, you may withdraw it at any time without affecting past lawful processing.',
         ],
     },
     {
-        id: 'third-party',
-        title: '8. Third-party services',
+        id: 'minors',
+        title: '8. Protection of Minors',
         paragraphs: [
-            'The site may link to third-party services or use integrations from providers that have their own privacy practices. Their handling of data is governed by their own policies.',
-            'We encourage you to review those policies before using third-party features or submitting information to them.',
+            'Our platform is not directed to individuals under the age of 18. We do not knowingly collect personal information from children without verified parental consent. If we learn that a minor under 18 has submitted personal data without authorization, we will promptly delete the data from our records.',
+        ],
+    },
+    {
+        id: 'updates',
+        title: '9. Updates to This Policy',
+        paragraphs: [
+            'We may periodically update this Privacy Policy to reflect changes in our operational procedures or legal requirements. Material updates will be highlighted on the storefront or communicated via email before taking effect.',
         ],
     },
 ]
@@ -70,10 +89,11 @@ const sections = [
 function Privacy() {
     return (
         <LegalPage
-            eyebrow="Privacy"
+            eyebrow="Data Protection"
             title="Privacy Policy"
-            description="This policy describes what information G-mart collects, how we use it, and the choices you have around your data."
-            updatedLabel="Draft for review and legal approval."
+            description="Learn how G-mart collects, processes, and protects your personal information and how you can exercise your privacy and data portability rights."
+            effectiveDate="October 14, 2026"
+            version="1.0"
             sections={sections}
         />
     )
