@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { FaInstagram, FaWhatsapp, FaXTwitter } from "react-icons/fa6";
+import { openCookiePreferences } from '@/lib/cookieConsent'
 
 const Footer = () => {
     return (
@@ -124,9 +125,10 @@ const Footer = () => {
                                     <div>
                                         <p className="text-sm font-semibold font-montserrat">Support</p>
                                         <ul className="mt-3 space-y-2 text-sm text-white/70 font-montserrat">
-                                            <li><Link className="hover:text-white" to="/terms#shipping">Shipping</Link></li>
-                                            <li><Link className="hover:text-white" to="/terms#returns">Returns</Link></li>
-                                            <li><Link className="hover:text-white" to="/privacy">Privacy</Link></li>
+                                            <li><Link className="hover:text-white" to="/shipping">Shipping</Link></li>
+                                            <li><Link className="hover:text-white" to="/returns">Returns &amp; Refunds</Link></li>
+                                            <li><Link className="hover:text-white" to="/privacy">Privacy Policy</Link></li>
+                                            <li><Link className="hover:text-white" to="/seller-terms">Seller Terms</Link></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -135,12 +137,18 @@ const Footer = () => {
 
                         <div className="mt-10 border-t border-white/10 pt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <p className="text-sm text-white/60 font-montserrat">
-                                © {new Date().getFullYear()} G-mart. All rights reserved.
+                                © {new Date().getFullYear()} G-mart E-Commerce PLC. All rights reserved.
                             </p>
                             <div className="flex items-center gap-5 text-sm text-white/60 font-montserrat">
                                 <Link className="hover:text-white" to="/terms">Terms</Link>
                                 <Link className="hover:text-white" to="/privacy">Privacy</Link>
-                                <Link className="hover:text-white" to="/privacy#cookies">Cookies</Link>
+                                <button
+                                    type="button"
+                                    onClick={openCookiePreferences}
+                                    className="hover:text-white underline underline-offset-2 transition"
+                                >
+                                    Cookie Settings
+                                </button>
                             </div>
                         </div>
                     </div>

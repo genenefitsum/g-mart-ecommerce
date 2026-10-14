@@ -18,6 +18,10 @@ import Account from './pages/Account.jsx'
 import Admin from './pages/Admin.jsx'
 import Terms from './pages/Terms.jsx'
 import Privacy from './pages/Privacy.jsx'
+import RefundPolicy from './pages/RefundPolicy.jsx'
+import ShippingPolicy from './pages/ShippingPolicy.jsx'
+import SellerTerms from './pages/SellerTerms.jsx'
+import CookieBanner from './components/legal/CookieBanner.jsx'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
@@ -146,6 +150,11 @@ function App() {
           <Route path="/product/:productId" element={<ProductDetails />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/returns" element={<RefundPolicy />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/shipping" element={<ShippingPolicy />} />
+          <Route path="/shipping-policy" element={<ShippingPolicy />} />
+          <Route path="/seller-terms" element={<SellerTerms />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route
             path="/account"
@@ -193,6 +202,7 @@ function App() {
 
       <About />
       <Footer />
+      <CookieBanner />
 
     </>
 
