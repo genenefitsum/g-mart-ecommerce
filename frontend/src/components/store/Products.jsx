@@ -416,10 +416,9 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                             {product.canAddToCart ? (
                                 <div
                                     className={
-                                        "absolute inset-x-3 bottom-3 transition " +
-                                        "opacity-100 translate-y-0 " +
-                                        "md:opacity-0 md:translate-y-2 md:group-hover:opacity-100 md:group-hover:translate-y-0 " +
-                                        "md:pointer-events-none md:group-hover:pointer-events-auto"
+                                        "hidden md:block absolute inset-x-3 bottom-3 transition " +
+                                        "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 " +
+                                        "pointer-events-none group-hover:pointer-events-auto"
                                     }
                                 >
                                     <Button
@@ -489,6 +488,26 @@ const ProductsGrid = ({ products, searchQuery, isLoading, error, onAddToCart, on
                                     </span>
                                 )}
                             </div>
+
+                            {product.canAddToCart ? (
+                                <button
+                                    type="button"
+                                    className="md:hidden mt-3 w-full py-2 px-3 rounded-xl font-montserrat text-xs font-semibold bg-blue-600 active:bg-blue-700 text-white flex items-center justify-center gap-1.5 transition shadow-sm active:scale-95"
+                                    onClick={() =>
+                                        onAddToCart({
+                                            id: product.id,
+                                            name: product.name,
+                                            price: product.price,
+                                            image: product.image,
+                                            category: product.category,
+                                            canAddToCart: product.canAddToCart,
+                                        })
+                                    }
+                                >
+                                    <ShoppingCart size={13} />
+                                    Add to cart
+                                </button>
+                            ) : null}
                         </div>
                     </article>
                 ))}
