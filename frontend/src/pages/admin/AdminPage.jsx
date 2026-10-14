@@ -86,6 +86,17 @@ function normalizeSettings(data) {
       supportPhone: String(content.supportPhone ?? '').trim(),
       bannerMessage: String(content.bannerMessage ?? '').trim(),
     },
+    legal: {
+      companyName: String(settings.legal?.companyName ?? 'G-mart E-Commerce PLC').trim() || 'G-mart E-Commerce PLC',
+      registeredAddress: String(settings.legal?.registeredAddress ?? 'Bole Sub-City, Addis Ababa, Ethiopia').trim() || 'Bole Sub-City, Addis Ababa, Ethiopia',
+      registrationNumber: String(settings.legal?.registrationNumber ?? 'ET-MTR-2024-00918').trim(),
+      taxId: String(settings.legal?.taxId ?? 'TIN-008291823').trim(),
+      legalEmail: String(settings.legal?.legalEmail ?? 'gmartofficial@gmail.com').trim() || 'gmartofficial@gmail.com',
+      effectiveDate: String(settings.legal?.effectiveDate ?? 'October 14, 2026').trim() || 'October 14, 2026',
+      termsVersion: String(settings.legal?.termsVersion ?? '1.0').trim() || '1.0',
+      privacyVersion: String(settings.legal?.privacyVersion ?? '1.0').trim() || '1.0',
+      returnWindowDays: Number.isFinite(Number(settings.legal?.returnWindowDays)) ? Number(settings.legal.returnWindowDays) : 7,
+    },
   }
 }
 
@@ -1291,6 +1302,7 @@ function AdminSettingsPage() {
       const data = await apiAdminUpdateSettings({
         paymentRecipient: settings.paymentRecipient,
         content: settings.content,
+        legal: settings.legal,
       })
 
       if (!data?.ok) throw new Error(data?.error || 'Failed to update settings')
@@ -1449,6 +1461,143 @@ function AdminSettingsPage() {
                         setSettings((current) => ({
                           ...current,
                           content: { ...current.content, bannerMessage: value },
+                        }))
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 xl:col-span-2">
+                <div className="text-sm font-semibold text-slate-950">Legal &amp; Compliance</div>
+                <div className="mt-1 text-sm text-slate-500">Official company entity, trade license, policy versions, and customer return window.</div>
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-legal-name">Legal Entity Name</Label>
+                    <Input
+                      id="admin-legal-name"
+                      value={settings.legal.companyName}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setSettings((current) => ({
+                          ...current,
+                          legal: { ...current.legal, companyName: value },
+                        }))
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-legal-address">Registered Office Address</Label>
+                    <Input
+                      id="admin-legal-address"
+                      value={settings.legal.registeredAddress}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setSettings((current) => ({
+                          ...current,
+                          legal: { ...current.legal, registeredAddress: value },
+                        }))
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-legal-email">Legal / DPO Email</Label>
+                    <Input
+                      id="admin-legal-email"
+                      value={settings.legal.legalEmail}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setSettings((current) => ({
+                          ...current,
+                          legal: { ...current.legal, legalEmail: value },
+                        }))
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-legal-reg">Business License / Reg #</Label>
+                    <Input
+                      id="admin-legal-reg"
+                      value={settings.legal.registrationNumber}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setSettings((current) => ({
+                          ...current,
+                          legal: { ...current.legal, registrationNumber: value },
+                        }))
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-legal-tin">Tax ID / TIN</Label>
+                    <Input
+                      id="admin-legal-tin"
+                      value={settings.legal.taxId}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setSettings((current) => ({
+                          ...current,
+                          legal: { ...current.legal, taxId: value },
+                        }))
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-legal-date">Policy Effective Date</Label>
+                    <Input
+                      id="admin-legal-date"
+                      value={settings.legal.effectiveDate}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setSettings((current) => ({
+                          ...current,
+                          legal: { ...current.legal, effectiveDate: value },
+                        }))
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-legal-terms-ver">Terms Version</Label>
+                    <Input
+                      id="admin-legal-terms-ver"
+                      value={settings.legal.termsVersion}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setSettings((current) => ({
+                          ...current,
+                          legal: { ...current.legal, termsVersion: value },
+                        }))
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-legal-privacy-ver">Privacy Version</Label>
+                    <Input
+                      id="admin-legal-privacy-ver"
+                      value={settings.legal.privacyVersion}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setSettings((current) => ({
+                          ...current,
+                          legal: { ...current.legal, privacyVersion: value },
+                        }))
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-legal-returns">Return Window (Days)</Label>
+                    <Input
+                      id="admin-legal-returns"
+                      type="number"
+                      min="0"
+                      max="365"
+                      value={settings.legal.returnWindowDays}
+                      onChange={(e) => {
+                        const value = Number(e.target.value)
+                        setSettings((current) => ({
+                          ...current,
+                          legal: { ...current.legal, returnWindowDays: value },
                         }))
                       }}
                     />

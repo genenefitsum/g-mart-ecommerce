@@ -2,75 +2,103 @@ import LegalPage from '../components/legal/LegalPage.jsx'
 
 const sections = [
     {
-        id: 'overview',
-        title: '1. Agreement to terms',
+        id: 'agreement',
+        title: '1. Agreement to Terms and Eligibility',
         paragraphs: [
-            'By accessing or using G-mart, you agree to these Terms and Conditions. If you do not agree, please do not use the site or services.',
-            'These terms apply to browsing the storefront, creating an account, placing orders, and interacting with any content or features we provide.',
+            'These Terms and Conditions constitute a legally binding agreement between you (whether personally or on behalf of an entity) and G-mart E-Commerce PLC ("G-mart", "we", "us", or "our"), governing your access to and use of the G-mart website, mobile services, and storefront.',
+            'By accessing the site, registering an account, or placing an order, you confirm that you have read, understood, and agreed to be bound by all of these Terms and Conditions. If you do not agree with all of these terms, you are expressly prohibited from using the platform and must discontinue use immediately.',
+            'The platform is intended for users who are at least 18 years of age (or the legal age of majority in your jurisdiction). Individuals under 18 may only use G-mart under the supervision of a parent or legal guardian who agrees to be bound by these Terms.',
         ],
     },
     {
         id: 'accounts',
-        title: '2. Accounts and eligibility',
+        title: '2. User Accounts and Electronic Communications',
         paragraphs: [
-            'You are responsible for providing accurate account information and keeping your login details secure. You should notify us right away if you suspect unauthorized access to your account.',
-            'We may suspend or close accounts that violate these terms, misuse the platform, or create risk for G-mart or other users.',
+            'To access certain features of G-mart, including placing orders, rating sellers, and listing products, you must register an account. You agree to provide accurate, current, and complete information and to keep your credentials confidential.',
+            'You are solely responsible for all activities that occur under your account. You agree to immediately notify G-mart of any unauthorized use or security breach.',
+            'By creating an account, you consent to receive electronic communications from us regarding your transactions, security updates, and administrative notices. These electronic notices satisfy any legal requirement that such communications be in writing.',
         ],
     },
     {
         id: 'orders',
-        title: '3. Orders, pricing, and availability',
+        title: '3. Orders, Pricing, and Contract Formation',
         paragraphs: [
-            'We may update product details, pricing, and availability at any time. We work to keep information accurate, but errors can happen and we may correct them before or after an order is placed.',
-            'Submitting an order does not guarantee acceptance. We may cancel or limit orders for inventory, pricing, fraud-prevention, or other operational reasons.',
+            'All product descriptions, specifications, and prices are subject to change without prior notice. While we strive for accuracy, typographical errors, inaccuracies, or omissions may occur. We reserve the right to correct any errors and to cancel or refuse orders based on incorrect pricing or availability information.',
+            'Placing an order constitutes an offer to purchase. A legally binding contract of sale is formed only when G-mart or the respective seller verifies payment and confirms order acceptance for processing.',
+            'We reserve the right to limit or prohibit orders that, in our judgment, appear to be placed by dealers, resellers, distributors, or in violation of our fair use policies.',
         ],
     },
     {
         id: 'payments',
-        title: '4. Payments',
+        title: '4. Payment Methods, Proof Verification, and Currency',
         paragraphs: [
-            'You agree to pay all charges associated with your order, including product price, taxes, shipping, and any other fees shown at checkout.',
-            'If a payment method fails, is reversed, or is flagged for fraud, we may delay or cancel fulfillment until the issue is resolved.',
+            'All transactions on G-mart are processed in Ethiopian Birr (ETB) unless explicitly stated otherwise. We accept payments via Telebirr mobile wallet and accredited Ethiopian commercial bank transfers.',
+            'When placing an order with manual transfer, you agree to submit genuine, verifiable payment confirmation (transaction reference number and screenshot proof). Submission of counterfeit, manipulated, or fraudulent transaction receipts constitutes a material breach and may result in immediate account termination and reporting to financial authorities.',
+            'Orders are released for fulfillment only after successful verification and reconciliation of funds into G-mart\'s designated recipient account.',
         ],
     },
     {
         id: 'shipping',
-        title: '5. Shipping and delivery',
+        title: '5. Delivery, Shipping, and Passing of Risk',
         paragraphs: [
-            'Shipping timelines are estimates, not guarantees. Delivery may be affected by carrier delays, address issues, weather, or other events outside our control.',
-            'Once an item is handed to the carrier or otherwise marked delivered according to the selected shipping method, the risk of delay or loss may shift according to the applicable shipping terms.',
+            'Delivery timelines provided during checkout or within order confirmation notices are good-faith estimates and may be subject to carrier delays, weather conditions, or local logistical disruptions.',
+            'Title and risk of loss for products pass to you upon delivery to the designated shipping address provided during checkout. For full details on delivery areas, inspection at handover, and missing package reports, please consult our dedicated Shipping Policy.',
         ],
     },
     {
         id: 'returns',
-        title: '6. Returns and refunds',
+        title: '6. Returns, Exchanges, and Refunds',
         paragraphs: [
-            'Returns and refunds are handled according to the return policy presented at checkout or on the site. Some products may be final sale or subject to special conditions.',
-            'We may refuse a return or refund if an item is used, damaged by misuse, missing original packaging, or outside the stated return window.',
+            'Customers have the right to request a return or exchange within the applicable return window (generally 7 days from verified delivery) for eligible, unblemished items in original packaging, in accordance with our Refund & Return Policy.',
+            'Refunds for validated returns are issued via the original payment method (Telebirr or bank reversal) within 3 to 5 business days following inspection of the returned merchandise. Certain categories, such as perishable items, personal hygiene goods, and digital downloads, are non-returnable.',
+        ],
+    },
+    {
+        id: 'marketplace',
+        title: '7. Multi-Vendor Marketplace Dynamics',
+        paragraphs: [
+            'G-mart operates both as a direct merchant and as a multi-vendor marketplace connecting verified independent sellers with buyers. When purchasing from an independent seller, the transaction is subject to the seller\'s warranty and fulfillment obligations in accordance with our Seller Terms.',
+            'G-mart provides mediation support for buyer-seller disputes. However, independent sellers remain solely responsible for the authenticity, safety, and regulatory compliance of items they list.',
         ],
     },
     {
         id: 'conduct',
-        title: '7. Acceptable use',
+        title: '8. Acceptable Use and Prohibited Activities',
         paragraphs: [
-            'You may not use G-mart to violate laws, interfere with the service, upload harmful code, scrape data without permission, or attempt unauthorized access to systems or accounts.',
-            'Any reviews, comments, or other submissions you provide must be lawful, accurate to the best of your knowledge, and free of abusive or deceptive content.',
+            'You may not access or use the platform for any purpose other than that for which we make it available. Prohibited activities include: attempting to bypass security mechanisms, automated scraping or data harvesting without written permission, uploading malicious code, submitting false ratings or defamatory reviews, and infringing on third-party rights.',
+            'Violation of acceptable use guidelines may result in immediate suspension or permanent termination of your account without liability to G-mart.',
         ],
     },
     {
         id: 'ip',
-        title: '8. Intellectual property',
+        title: '9. Intellectual Property Rights',
         paragraphs: [
-            'All site design, branding, text, graphics, logos, and other materials provided by G-mart are protected by intellectual property laws and remain our property or the property of our licensors.',
-            'You may not reproduce, redistribute, or exploit our content except as needed to use the site for normal personal shopping purposes.',
+            'Unless otherwise indicated, the platform, source code, databases, website designs, audio, video, text, photographs, and graphics on the site (collectively, the "Content") and the trademarks, service marks, and logos contained therein are owned or licensed by G-mart E-Commerce PLC and are protected by copyright and trademark laws.',
+            'You are granted a limited license to access and make personal, non-commercial use of the site. Any reproduction, distribution, or commercial exploitation without our prior written consent is strictly prohibited.',
         ],
     },
     {
         id: 'liability',
-        title: '9. Disclaimer and limitation of liability',
+        title: '10. Disclaimers and Limitation of Liability',
         paragraphs: [
-            'The site and services are provided on an as-available basis. To the extent allowed by law, we disclaim warranties that are not expressly stated here.',
-            'We are not liable for indirect, incidental, special, or consequential damages arising from your use of the site, except where such limits are not permitted by law.',
+            'The platform and all products and services delivered to you are provided on an "as is" and "as available" basis without warranties of any kind, either express or implied, including warranties of merchantability, fitness for a particular purpose, or non-infringement.',
+            'In no event shall G-mart, its directors, employees, or agents be liable to you or any third party for any direct, indirect, consequential, exemplary, incidental, special, or punitive damages arising from your use of the platform, even if advised of the possibility of such damages.',
+        ],
+    },
+    {
+        id: 'governing-law',
+        title: '11. Governing Law and Dispute Resolution',
+        paragraphs: [
+            'These Terms and Conditions and your use of the platform are governed by and construed in accordance with the laws of the Federal Democratic Republic of Ethiopia, including the Electronic Transactions Proclamation No. 1205/2020 and the Ethiopian Commercial Code.',
+            'Any dispute, controversy, or claim arising out of or relating to these terms shall first be submitted to good-faith mutual consultation. If unresolved within thirty (30) days, the dispute shall be submitted to the exclusive jurisdiction of the competent courts of Addis Ababa, Ethiopia.',
+        ],
+    },
+    {
+        id: 'modifications',
+        title: '12. Modifications and Severability',
+        paragraphs: [
+            'We reserve the right to amend these Terms and Conditions at our discretion. We will indicate the "Effective Date" of any revisions. Continued use of the platform after revised terms are posted constitutes your acceptance of the changes.',
+            'If any provision of these terms is determined to be unlawful, void, or unenforceable, such provision shall be deemed severable and shall not affect the validity and enforceability of any remaining provisions.',
         ],
     },
 ]
@@ -78,10 +106,11 @@ const sections = [
 function Terms() {
     return (
         <LegalPage
-            eyebrow="Legal"
+            eyebrow="Terms of Service"
             title="Terms and Conditions"
-            description="These terms explain how G-mart works, what you can expect from us, and what we expect from you when you use the platform."
-            updatedLabel="Draft for review and legal approval."
+            description="These binding terms govern your access to the G-mart marketplace, storefront, user accounts, and purchase contracts."
+            effectiveDate="October 14, 2026"
+            version="1.0"
             sections={sections}
         />
     )

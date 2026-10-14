@@ -234,6 +234,11 @@ ordersRouter.post('/', requireAuth, async (req, res, next) => {
         bankAccountNumber: recipient.bankAccountNumber,
         bankAccountName: recipient.bankAccountName,
       },
+      legalConsent: {
+        termsAccepted: req.body?.termsAccepted !== undefined ? Boolean(req.body.termsAccepted) : true,
+        acceptedAt: new Date(),
+        termsVersion: String(req.body?.termsVersion ?? '1.0').trim() || '1.0',
+      },
       status: 'pending_payment',
     })
 

@@ -644,6 +644,68 @@ authRouter.post('/change-password', authLimiter, requireAuth, async (req, res, n
   }
 })
 
+// GET /api/v1/auth/export-data
+// GDPR / Data Portability endpoint
+authRouter.get('/export-data', authLimiter, requireAuth, async (req, res, next) => {
+  try {
+    if (!mongoGuard(req, res)) return
+
+    const userId = req.auth.userId
+    const user = await User.findById(userId).select('-passwordHash').lean()
+    if (!user) return res.status(401).json({ ok: false, error: 'Unauthorized' })
+
+    const [orders, wishlist, products] = await Promise.all([
+      Order.find({ userId }).lean(),
+      Wishlist.findOne({ userId }).lean(),
+      Product.find({ sellerUserId: userId }).lean(),
+    ])
+
+    const exportPayload = {
+      exportMetadata: {
+        exportedAt: new Date().toISOString(),
+        platform: 'G-mart E-Commerce',
+        purpose: 'GDPR / Personal Data Portability Report',
+      },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        termsAndPrivacyAccepted: user.termsAndPrivacyAccepted,
+        termsAndPrivacyAcceptedAt: user.termsAndPrivacyAcceptedAt,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+      orders: orders.map((o) => ({
+        id: o._id,
+        subtotal: o.subtotal,
+        currency: o.currency,
+        status: o.status,
+        shipping: o.shipping,
+        items: o.items,
+        paymentMethod: o.payment?.method,
+        legalConsent: o.legalConsent,
+        createdAt: o.createdAt,
+      })),
+      wishlist: wishlist?.items || [],
+      listedProducts: products.map((p) => ({
+        id: p._id,
+        name: p.name,
+        category: p.category,
+        price: p.price,
+        createdAt: p.createdAt,
+      })),
+    }
+
+    return res.json({
+      ok: true,
+      data: exportPayload,
+    })
+  } catch (err) {
+    return next(err)
+  }
+})
+
 // DELETE /api/v1/auth/account
 // body: { password }
 authRouter.delete('/account', authLimiter, requireAuth, async (req, res, next) => {
