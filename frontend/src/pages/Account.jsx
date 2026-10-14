@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Cookie, Download, FileText, ShieldCheck } from 'lucide-react'
 
 import { useAuth } from '@/context/AuthContext'
 import {
   apiChangePassword,
   apiDeleteAccount,
+  apiExportMyData,
   apiListMyProducts,
   apiListOrders,
   apiSetPassword,
   apiUpdateMe,
 } from '@/lib/api'
+import { openCookiePreferences } from '@/lib/cookieConsent'
 import { toErrorMessage } from '@/lib/errors'
 import { formatBirr } from '@/lib/utils'
 
@@ -67,6 +69,10 @@ export default function Account({ onRequireAuth }) {
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteSubmitting, setDeleteSubmitting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+
+  const [exportLoading, setExportLoading] = useState(false)
+  const [exportError, setExportError] = useState('')
+  const [exportSuccess, setExportSuccess] = useState('')
 
   useEffect(() => {
     setName(user?.name ?? '')
@@ -255,6 +261,31 @@ export default function Account({ onRequireAuth }) {
       setDeleteError(toErrorMessage(err, 'Failed to delete account'))
     } finally {
       setDeleteSubmitting(false)
+    }
+  }
+
+  const onExportData = async () => {
+    setExportError('')
+    setExportSuccess('')
+    setExportLoading(true)
+    try {
+      const res = await apiExportMyData()
+      if (!res?.ok || !res?.data) throw new Error(res?.error || 'Failed to export data')
+
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `gmart-data-export-${user.name ? user.name.replace(/\s+/g, '-').toLowerCase() : 'user'}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      setExportSuccess('Personal data archive downloaded.')
+    } catch (err) {
+      setExportError(toErrorMessage(err, 'Failed to export personal data'))
+    } finally {
+      setExportLoading(false)
     }
   }
 
@@ -501,6 +532,85 @@ export default function Account({ onRequireAuth }) {
               <div className="sm:col-span-2 text-sm text-green-700">{passwordStatus}</div>
             ) : null}
           </form>
+        </Card>
+
+        <Card className="rounded-2xl border border-gray-200 p-5">
+          <div className="flex items-center gap-2 text-base font-semibold text-gray-900">
+            <ShieldCheck className="h-5 w-5 text-blue-600" />
+            Privacy &amp; Data Rights
+          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            Manage your personal data, view legal consent history, and control privacy preferences.
+          </p>
+
+          <div className="mt-4 space-y-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-700">
+              <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-slate-500" />
+                Consent &amp; Agreement Record
+              </div>
+              <div className="mt-1 text-slate-600">
+                Terms and Conditions &amp; Privacy Policy accepted:{' '}
+                <span className="font-medium text-slate-900">
+                  {user.termsAndPrivacyAcceptedAt
+                    ? formatDate(user.termsAndPrivacyAcceptedAt)
+                    : formatDate(user.createdAt)}
+                </span>
+              </div>
+              <div className="mt-2 flex gap-3">
+                <Link to="/terms" className="font-medium text-blue-600 hover:underline">
+                  View Terms
+                </Link>
+                <Link to="/privacy" className="font-medium text-blue-600 hover:underline">
+                  View Privacy Policy
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 p-4">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">Download Personal Data</div>
+                <div className="text-xs text-gray-500">
+                  Export a portable machine-readable JSON copy of your profile, orders, and listings.
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onExportData}
+                disabled={exportLoading}
+              >
+                <Download className="h-4 w-4 mr-1.5" />
+                {exportLoading ? 'Exporting…' : 'Export Data (JSON)'}
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 p-4">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">Cookie Preferences</div>
+                <div className="text-xs text-gray-500">
+                  Review and update your functional and analytics cookie consents.
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={openCookiePreferences}
+              >
+                <Cookie className="h-4 w-4 mr-1.5" />
+                Manage Cookies
+              </Button>
+            </div>
+
+            {exportSuccess ? (
+              <div className="text-xs text-emerald-700 font-medium">{exportSuccess}</div>
+            ) : null}
+            {exportError ? (
+              <div className="text-xs text-red-600 font-medium">{exportError}</div>
+            ) : null}
+          </div>
         </Card>
 
         <Card className="rounded-2xl border border-gray-200 p-5">
