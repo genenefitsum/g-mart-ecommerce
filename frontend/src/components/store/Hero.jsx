@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 import heroImage from "../../assets/hero.jpeg";
 import img1 from "../../assets/download.jpeg";
@@ -43,7 +44,7 @@ const HeroSection = () => {
 
   return (
     <section className="w-full m-0 p-0">
-      <div className="relative flex items-center min-h-[clamp(440px,76vh,880px)] overflow-hidden">
+      <div className="relative flex items-center hero-full-viewport overflow-hidden">
 
         {/* Background Images */}
         {images.map((img, index) => (
@@ -71,7 +72,7 @@ const HeroSection = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/30 sm:to-transparent" />
 
         {/* Content */}
-        <div className="relative container mx-auto px-5 sm:px-6 lg:px-8 py-12 sm:py-20 lg:py-28">
+        <div className="relative container mx-auto px-5 sm:px-6 lg:px-8 py-10 sm:py-16 lg:py-24">
           <div className="max-w-xl text-left text-white">
 
             <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold font-montserrat leading-tight mb-4 sm:mb-6 tracking-tight">
@@ -105,6 +106,19 @@ const HeroSection = () => {
 
           </div>
         </div>
+
+        {/* Explore scroll prompt */}
+        <a
+          href="#categories"
+          onClick={handleExploreCategories}
+          aria-label="Scroll down to categories"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/70 hover:text-white transition group py-1 select-none"
+        >
+          <span className="text-[10px] font-semibold tracking-widest uppercase font-montserrat opacity-80 group-hover:opacity-100">
+            Explore
+          </span>
+          <ChevronDown size={18} className="animate-bounce" />
+        </a>
       </div>
     </section>
   );
