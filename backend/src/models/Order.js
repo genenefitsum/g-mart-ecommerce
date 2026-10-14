@@ -105,6 +105,11 @@ const orderSchema = new Schema(
 			default: 'pending_payment',
 			index: true,
 		},
+		legalConsent: {
+			termsAccepted: { type: Boolean, default: true },
+			acceptedAt: { type: Date, default: Date.now },
+			termsVersion: { type: String, trim: true, default: '1.0' },
+		},
 	},
 	{ timestamps: true },
 )
