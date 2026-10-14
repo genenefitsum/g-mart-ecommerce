@@ -61,6 +61,24 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
   const [sellerInterestsLoading, setSellerInterestsLoading] = useState(false);
   const [sellerInterestsError, setSellerInterestsError] = useState("");
   const searchInputRef = useRef(null);
+  const headerRef = useRef(null);
+
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        const height = headerRef.current.offsetHeight;
+        if (height > 0) {
+          document.documentElement.style.setProperty("--app-header-height", `${height}px`);
+        }
+      }
+    };
+
+    updateHeaderHeight();
+    window.addEventListener("resize", updateHeaderHeight);
+    return () => {
+      window.removeEventListener("resize", updateHeaderHeight);
+    };
+  }, []);
 
   const openAuth = () => {
     setIsMobileMenuOpen(false);
@@ -282,7 +300,7 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
   };
 
   return (
-    <header className="sticky top-0 z-50">
+    <header ref={headerRef} className="sticky top-0 z-50">
       {/* Promo Bar */}
       <div className="bg-black text-white text-center py-2 px-4 text-xs sm:text-sm font-montserrat font-medium tracking-wide">
         All you need in one place, welcome to <span className="font-bold">G-mart</span>.
