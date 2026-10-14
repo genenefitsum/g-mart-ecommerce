@@ -38,31 +38,31 @@ const CategoriesSection = ({ searchQuery = "" }) => {
         : categories;
 
     return (
-    <section id="categories" className="scroll-mt-32 py-16 lg:py-24">
-        <div className="container mx-auto px-4 mt-16">
+    <section id="categories" className="scroll-mt-32 py-12 sm:py-16 lg:py-24">
+        <div className="container mx-auto px-4">
         <div className="mx-auto w-full max-w-6xl">
             {/* Section Header */}
-            <div className="text-center mb-12">
-                <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-gray-900 font-montserrat">
+            <div className="text-center mb-8 sm:mb-12">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 text-gray-900 font-montserrat tracking-tight">
                 Shop by Category
                 </h2>
-                <p className="text-gray-400 max-w-md mx-auto font-montserrat">
+                <p className="text-xs sm:text-sm md:text-base text-gray-500 max-w-md mx-auto font-montserrat">
                 Browse our curated collections and find exactly what you're looking for
                 </p>
             </div>
 
             {/* Categories Grid */}
             {filteredCategories.length === 0 ? (
-                <div className="text-center text-gray-500 font-montserrat">
+                <div className="text-center text-gray-500 font-montserrat py-8">
                     No categories found for “{searchQuery}”.
                 </div>
             ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                 {filteredCategories.map((category, index) => (
                 <Link
                     key={category.id}
                     to={`/category/${category.id}`}
-                    className="group relative aspect-[3/4] rounded-lg overflow-hidden shadow-md"
+                    className="group relative aspect-[3/4] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl active:scale-[0.98] transition-all duration-300"
                     style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   {/* Image */}
@@ -73,16 +73,16 @@ const CategoriesSection = ({ searchQuery = "" }) => {
                     />
 
                   {/* Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
                     {/* Content */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-4 lg:p-6">
-                        <h3 className="text-xl lg:text-2xl font-bold text-white mb-1">
+                    <div className="absolute inset-0 flex flex-col justify-end p-3.5 sm:p-5 lg:p-6">
+                        <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-0.5 sm:mb-1 leading-tight">
                         {category.name}
                     </h3>
-                    <div className="flex items-center gap-2 text-gray-200 text-sm font-medium group-hover:text-white transition-colors">
+                    <div className="flex items-center gap-1.5 text-gray-200 text-xs sm:text-sm font-medium group-hover:text-white transition-colors">
                         <span>{category.description}</span>
-                        <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                        <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
                     </div>
                     </div>
                 </Link>
