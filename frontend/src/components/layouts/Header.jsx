@@ -61,6 +61,24 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
   const [sellerInterestsLoading, setSellerInterestsLoading] = useState(false);
   const [sellerInterestsError, setSellerInterestsError] = useState("");
   const searchInputRef = useRef(null);
+  const headerRef = useRef(null);
+
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        const height = headerRef.current.offsetHeight;
+        if (height > 0) {
+          document.documentElement.style.setProperty("--app-header-height", `${height}px`);
+        }
+      }
+    };
+
+    updateHeaderHeight();
+    window.addEventListener("resize", updateHeaderHeight);
+    return () => {
+      window.removeEventListener("resize", updateHeaderHeight);
+    };
+  }, []);
 
   const openAuth = () => {
     setIsMobileMenuOpen(false);
@@ -282,15 +300,15 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
   };
 
   return (
-    <header className="sticky top-0 z-50">
+    <header ref={headerRef} className="sticky top-0 z-50">
       {/* Promo Bar */}
-      <div className="bg-black text-white text-center py-2.5 text-sm font-montserrat font-medium">
-        All you need in one place, welcome to <span className="font-bold">G-mart</span> .
+      <div className="bg-black text-white text-center py-2 px-4 text-xs sm:text-sm font-montserrat font-medium tracking-wide">
+        All you need in one place, welcome to <span className="font-bold">G-mart</span>.
       </div>
 
       {/* Navbar */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        {/* Mobile header (matches screenshot) */}
+        {/* Mobile header */}
         <div className="md:hidden">
           <div className="container mx-auto px-4 h-16 grid grid-cols-3 items-center">
             <div className="flex items-center justify-start">
@@ -304,7 +322,7 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
                 <DialogTrigger asChild>
                   <button
                     type="button"
-                    className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                    className="p-2.5 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-800 hover:bg-gray-100 rounded-xl transition"
                     aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
                   >
                     {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -316,67 +334,85 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
                   overlayClassName="z-[70] bg-black/20 backdrop-blur-md data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0"
                   className={
                     "z-[71] top-6 w-[min(92vw,720px)] max-w-none translate-y-0 " +
-                    "rounded-3xl border border-black/5 bg-white/80 p-0 shadow-[0_30px_80px_rgba(0,0,0,0.12)] " +
-                    "backdrop-blur-xl supports-[backdrop-filter]:bg-white/70 " +
+                    "rounded-3xl border border-black/5 bg-white/90 p-0 shadow-[0_30px_80px_rgba(0,0,0,0.12)] " +
+                    "backdrop-blur-xl supports-[backdrop-filter]:bg-white/85 " +
                     "data-[state=open]:animate-in data-[state=closed]:animate-out " +
                     "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 " +
                     "data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2"
                   }
                 >
-                  <div className="px-4 pt-12 pb-4">
-                    <div className={`grid ${isAdmin ? "grid-cols-3" : "grid-cols-2"} gap-2`}>
-                      {user ? (
+                  <div className="px-5 pt-12 pb-5">
+                    {/* Primary Mobile Navigation */}
+                    <div className="mb-5 space-y-1">
+                      <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Menu</p>
+                      {navLinks.map((link) => (
                         <button
-                          className={
-                            "py-3.5 px-3 rounded-2xl ring-1 ring-black/5 bg-white/60 " +
-                            "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
-                            "flex items-center justify-center gap-2 transition"
-                          }
-                          aria-label="Account"
-                          onClick={openAccount}
+                          key={link.name}
+                          onClick={() => handleScroll(link.id)}
+                          className="w-full flex items-center justify-between px-3.5 py-3 text-base font-medium text-gray-800 hover:text-black hover:bg-black/[0.04] active:bg-black/[0.08] rounded-xl transition"
                         >
-                          Account
+                          <span>{link.name}</span>
+                          <span className="text-gray-400 text-sm">→</span>
                         </button>
-                      ) : (
-                        <button
-                          className={
-                            "py-3.5 px-3 rounded-2xl ring-1 ring-black/5 bg-white/60 " +
-                            "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
-                            "flex items-center justify-center gap-2 transition"
-                          }
-                          aria-label="Sign in"
-                          onClick={openAuth}
-                        >
-                          Sign in
-                        </button>
-                      )}
+                      ))}
+                    </div>
 
-                      {isAdmin ? (
+                    <div className="pt-3 border-t border-gray-100">
+                      <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Quick Actions</p>
+                      <div className={`grid ${isAdmin ? "grid-cols-3" : "grid-cols-2"} gap-2`}>
+                        {user ? (
+                          <button
+                            className={
+                              "min-h-[44px] py-3 px-3 rounded-2xl ring-1 ring-black/5 bg-white/80 " +
+                              "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
+                              "flex items-center justify-center gap-2 transition"
+                            }
+                            aria-label="Account"
+                            onClick={openAccount}
+                          >
+                            Account
+                          </button>
+                        ) : (
+                          <button
+                            className={
+                              "min-h-[44px] py-3 px-3 rounded-2xl ring-1 ring-black/5 bg-white/80 " +
+                              "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
+                              "flex items-center justify-center gap-2 transition"
+                            }
+                            aria-label="Sign in"
+                            onClick={openAuth}
+                          >
+                            Sign in
+                          </button>
+                        )}
+
+                        {isAdmin ? (
+                          <button
+                            className={
+                              "min-h-[44px] py-3 px-3 rounded-2xl ring-1 ring-black/5 bg-white/80 " +
+                              "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
+                              "flex items-center justify-center gap-2 transition"
+                            }
+                            aria-label="Admin"
+                            onClick={openAdmin}
+                          >
+                            Admin
+                          </button>
+                        ) : null}
+
                         <button
                           className={
-                            "py-3.5 px-3 rounded-2xl ring-1 ring-black/5 bg-white/60 " +
+                            "min-h-[44px] py-3 px-3 rounded-2xl ring-1 ring-black/5 bg-white/80 " +
                             "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
                             "flex items-center justify-center gap-2 transition"
                           }
-                          aria-label="Admin"
-                          onClick={openAdmin}
+                          aria-label="Wishlist"
+                          onClick={openWishlist}
                         >
-                          Admin
+                          <Heart size={18} className="text-gray-700" />
+                          Wishlist
                         </button>
-                      ) : null}
-
-                      <button
-                        className={
-                          "py-3.5 px-3 rounded-2xl ring-1 ring-black/5 bg-white/60 " +
-                          "text-gray-900 font-semibold hover:bg-black/[0.04] active:bg-black/[0.06] " +
-                          "flex items-center justify-center gap-2 transition"
-                        }
-                        aria-label="Wishlist"
-                        onClick={openWishlist}
-                      >
-                        <Heart size={18} className="text-gray-700" />
-                        Wishlist
-                      </button>
+                      </div>
                     </div>
                   </div>
                 </DialogContent>
@@ -389,14 +425,14 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
               </a>
             </div>
 
-            <div className="flex items-center justify-end gap-1">
+            <div className="flex items-center justify-end gap-0.5">
               <button
                 type="button"
-                className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                className="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-800 hover:bg-gray-100 rounded-xl transition"
                 aria-label="Search"
                 onClick={openMobileSearch}
               >
-                <Search size={22} />
+                <Search size={21} />
               </button>
 
               {user ? (
@@ -406,11 +442,11 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
                   trigger={(
                     <button
                       type="button"
-                      className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                      className="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-800 hover:bg-gray-100 rounded-xl transition"
                       aria-label="Add Product"
                       title="Add Product"
                     >
-                      <Plus size={22} />
+                      <Plus size={21} />
                     </button>
                   )}
                 />
@@ -419,12 +455,12 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
               {shouldShowMessagesIcon ? (
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                  className="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-800 hover:bg-gray-100 rounded-xl transition"
                   aria-label="Messages"
                   onClick={openMessages}
                 >
                   <span className="relative flex items-center">
-                    <MessageCircle size={22} />
+                    <MessageCircle size={21} />
                     {unseenInterestCount > 0 ? (
                       <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-black text-white text-[10px] leading-4 text-center">
                         {unseenInterestCount}
@@ -436,14 +472,14 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
 
               <button
                 type="button"
-                className="p-2 text-gray-800 hover:bg-gray-100 rounded transition"
+                className="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-800 hover:bg-gray-100 rounded-xl transition"
                 aria-label="Cart"
                 onClick={() => {
                   openCart();
                 }}
               >
                 <span className="relative inline-flex">
-                  <ShoppingBag size={22} />
+                  <ShoppingBag size={21} />
                   {totalItems > 0 ? (
                     <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-black text-white text-[10px] leading-4 text-center">
                       {totalItems}
