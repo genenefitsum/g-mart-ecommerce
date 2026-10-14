@@ -363,3 +363,14 @@ export async function apiAdminUpdateSettings(payload) {
   const res = await api.patch('/admin/settings', payload)
   return res.data
 }
+
+export async function apiGetPublicSettings() {
+  const res = await api.get('/settings')
+  return res.data
+}
+
+export async function apiExportMyData() {
+  const res = await api.get('/auth/export-data')
+  return res.data
+}
+
