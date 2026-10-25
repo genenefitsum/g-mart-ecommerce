@@ -5,6 +5,7 @@ import { getMongoStatus } from '../db/mongo.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import Product from '../models/Product.js'
 import Wishlist from '../models/Wishlist.js'
+import { writeLimiter } from '../lib/rateLimiters.js'
 
 export const wishlistRouter = Router()
 
@@ -60,7 +61,7 @@ wishlistRouter.get('/', requireAuth, async (req, res, next) => {
 })
 
 // POST /api/v1/wishlist/:productId
-wishlistRouter.post('/:productId', requireAuth, async (req, res, next) => {
+wishlistRouter.post('/:productId', writeLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -89,7 +90,7 @@ wishlistRouter.post('/:productId', requireAuth, async (req, res, next) => {
 })
 
 // DELETE /api/v1/wishlist/:productId
-wishlistRouter.delete('/:productId', requireAuth, async (req, res, next) => {
+wishlistRouter.delete('/:productId', writeLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 

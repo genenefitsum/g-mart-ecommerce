@@ -8,6 +8,7 @@ import User from '../models/User.js'
 import Order from '../models/Order.js'
 import Product from '../models/Product.js'
 import SiteSettings from '../models/SiteSettings.js'
+import { escapeRegExp } from '../lib/strings.js'
 
 export const adminRouter = Router()
 
@@ -271,16 +272,17 @@ adminRouter.get('/users', async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
-    const q = String(req.query?.q ?? '').trim()
+    const q = String(req.query?.q ?? '').trim().slice(0, 100)
     const role = normalizeRole(req.query?.role)
     const limit = normalizeLimit(req.query?.limit)
 
     const filter = {}
     if (role) filter.role = role
     if (q) {
+      const safe = escapeRegExp(q)
       filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { email: { $regex: q, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { email: { $regex: safe, $options: 'i' } },
       ]
     }
 
@@ -442,20 +444,21 @@ adminRouter.get('/products', async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
-    const q = String(req.query?.q ?? '').trim()
-    const category = String(req.query?.category ?? '').trim()
+    const q = String(req.query?.q ?? '').trim().slice(0, 100)
+    const category = String(req.query?.category ?? '').trim().slice(0, 100)
     const sellerId = normalizeObjectId(req.query?.sellerId)
     const limit = normalizeLimit(req.query?.limit)
 
     const filter = {}
-    if (category) filter.category = { $regex: category, $options: 'i' }
+    if (category) filter.category = { $regex: escapeRegExp(category), $options: 'i' }
     if (sellerId) filter.sellerUserId = sellerId
 
     if (q) {
+      const safe = escapeRegExp(q)
       filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { category: { $regex: q, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { description: { $regex: safe, $options: 'i' } },
+        { category: { $regex: safe, $options: 'i' } },
       ]
     }
 

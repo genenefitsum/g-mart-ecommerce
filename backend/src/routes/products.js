@@ -10,6 +10,8 @@ import Product from '../models/Product.js'
 import ProductInterest from '../models/ProductInterest.js'
 import User from '../models/User.js'
 import { getUploadsRoot } from '../lib/uploads.js'
+import { escapeRegExp } from '../lib/strings.js'
+import { writeLimiter, uploadLimiter } from '../lib/rateLimiters.js'
 import {
   deleteCloudinaryImageByUrl,
   isCloudinaryEnabled,
@@ -37,6 +39,27 @@ const uploadsRoot = getUploadsRoot()
 const productsUploadDir = path.join(uploadsRoot, 'products')
 fs.mkdirSync(productsUploadDir, { recursive: true })
 
+const allowedImageMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+])
+
+const allowedImageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'])
+
+function imageFileFilter(_req, file, cb) {
+  const ext = path.extname(String(file?.originalname ?? '').toLowerCase())
+  const mime = String(file?.mimetype ?? '').toLowerCase()
+
+  if (!allowedImageExtensions.has(ext) || !allowedImageMimeTypes.has(mime)) {
+    return cb(new Error('Invalid image file type. Only JPG, PNG, WEBP, GIF, and AVIF are allowed.'))
+  }
+
+  return cb(null, true)
+}
+
 const storage = isCloudinaryEnabled
   ? multer.memoryStorage()
   : multer.diskStorage({
@@ -59,6 +82,7 @@ const storage = isCloudinaryEnabled
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
 })
 
 const uploadProductImages = upload.fields([
@@ -213,19 +237,20 @@ productsRouter.get('/', async (req, res, next) => {
     if (!mongoGuard(req, res)) return
 
     const category = String(req.query?.category ?? '').trim()
-    const q = String(req.query?.q ?? '').trim()
+    const q = String(req.query?.q ?? '').trim().slice(0, 100)
     const limit = normalizeLimit(req.query?.limit, 200, 200)
 
     const filter = {}
     if (category) filter.category = category
 
     if (q) {
-      // Prefer text search when possible; fallback to regex.
-      // If MongoDB text index isn't present (e.g. autoIndex disabled in prod), regex still works.
+      // Escape user input so it is treated as a literal substring. This prevents
+      // regex-injection and ReDoS while keeping the same case-insensitive matching.
+      const safe = escapeRegExp(q)
       filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { category: { $regex: q, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { description: { $regex: safe, $options: 'i' } },
+        { category: { $regex: safe, $options: 'i' } },
       ]
     }
 
@@ -265,7 +290,7 @@ productsRouter.get('/mine', requireAuth, async (req, res, next) => {
 
 // POST /api/v1/products/:productId/interest
 // body: { mode: 'notify_only' | 'with_contact', buyerContact?: { phone, email, note } }
-productsRouter.post('/:productId/interest', requireAuth, async (req, res, next) => {
+productsRouter.post('/:productId/interest', writeLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -411,7 +436,7 @@ productsRouter.get('/interests/mine', requireAuth, async (req, res, next) => {
 
 // POST /api/v1/products/interests/mark-read
 // body: { interestIds?: string[] }
-productsRouter.post('/interests/mark-read', requireAuth, async (req, res, next) => {
+productsRouter.post('/interests/mark-read', writeLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -475,7 +500,7 @@ productsRouter.get('/:productId([0-9a-fA-F]{24})', async (req, res, next) => {
 // POST /api/v1/products (multipart/form-data)
 // fields: name, price, category, description, contactPhone,
 // image(file) or images(files[])
-productsRouter.post('/', requireAuth, uploadProductImages, async (req, res, next) => {
+productsRouter.post('/', uploadLimiter, requireAuth, uploadProductImages, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -532,7 +557,7 @@ productsRouter.post('/', requireAuth, uploadProductImages, async (req, res, next
 
 // PATCH /api/v1/products/:productId (multipart/form-data)
 // editable fields: name, price, category, description, contactPhone, image(s)
-productsRouter.patch('/:productId', requireAuth, uploadProductImages, async (req, res, next) => {
+productsRouter.patch('/:productId', uploadLimiter, requireAuth, uploadProductImages, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -629,7 +654,7 @@ async function handleDeleteProduct(req, res, next) {
   }
 }
 
-productsRouter.delete('/:productId', requireAuth, handleDeleteProduct)
+productsRouter.delete('/:productId', writeLimiter, requireAuth, handleDeleteProduct)
 
 // Compatibility alias for environments that may not pass DELETE correctly.
-productsRouter.post('/:productId/delete', requireAuth, handleDeleteProduct)
+productsRouter.post('/:productId/delete', writeLimiter, requireAuth, handleDeleteProduct)

@@ -36,7 +36,23 @@ export function createServer() {
     app.use(
         helmet({
             crossOriginResourcePolicy: { policy: 'cross-origin' },
-            contentSecurityPolicy: false,
+            contentSecurityPolicy: {
+                useDefaults: true,
+                directives: {
+                    defaultSrc: ["'self'"],
+                    baseUri: ["'self'"],
+                    scriptSrc: ["'self'", 'https://accounts.google.com', 'https://apis.google.com'],
+                    styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com'],
+                    imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+                    fontSrc: ["'self'", 'data:'],
+                    connectSrc: ["'self'", 'https://accounts.google.com', 'https://res.cloudinary.com'],
+                    frameSrc: ["'self'", 'https://accounts.google.com'],
+                    objectSrc: ["'none'"],
+                    frameAncestors: ["'self'"],
+                    // Only force https upgrades in production; keep http for local dev.
+                    upgradeInsecureRequests: isProd ? [] : null,
+                },
+            },
             hsts: isProd
                 ? {
                       maxAge: 15552000,
@@ -103,6 +119,20 @@ export function createServer() {
     app.use(express.json({ limit: '100kb' }))
     app.use(express.urlencoded({ extended: false, limit: '50kb' }))
 
+    // Lightweight request logging (skipped in tests to keep output clean).
+    if (process.env.NODE_ENV !== 'test') {
+        app.use((req, res, next) => {
+            const startedAt = Date.now()
+            res.on('finish', () => {
+                // eslint-disable-next-line no-console
+                console.log(
+                    `${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - startedAt}ms`,
+                )
+            })
+            next()
+        })
+    }
+
     app.use('/api/v1', apiV1)
 
     app.get('/healthz', (_req, res) => {
@@ -144,7 +174,11 @@ export function createServer() {
             return res.status(400).json({ ok: false, error: 'File too large. Max size is 5MB.' })
         }
 
-        if (String(err?.message ?? '').startsWith('Invalid proof file type')) {
+        const errMessage = String(err?.message ?? '')
+        if (
+            errMessage.startsWith('Invalid proof file type') ||
+            errMessage.startsWith('Invalid image file type')
+        ) {
             return res.status(400).json({ ok: false, error: err.message })
         }
 

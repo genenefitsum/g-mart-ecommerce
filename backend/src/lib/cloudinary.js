@@ -21,7 +21,13 @@ const cloudinaryBaseFolder = sanitizeSegment(
 )
 
 const cloudinaryProductsFolder = `${cloudinaryBaseFolder}/products`
+const cloudinaryOrderPaymentsFolder = `${cloudinaryBaseFolder}/order-payments`
 const cloudinaryTag = sanitizeSegment(process.env.CLOUDINARY_TAG, 'gmart')
+
+export const cloudinaryFolders = {
+  products: cloudinaryProductsFolder,
+  orderPayments: cloudinaryOrderPaymentsFolder,
+}
 const cloudinaryEnvironmentTag = sanitizeSegment(
   process.env.NODE_ENV,
   'development',
@@ -37,7 +43,12 @@ if (isCloudinaryEnabled) {
   })
 }
 
-export async function uploadImageBufferToCloudinary({ buffer, filename }) {
+export async function uploadImageBufferToCloudinary({
+  buffer,
+  filename,
+  folder = cloudinaryProductsFolder,
+  tagSuffix = 'products',
+}) {
   if (!isCloudinaryEnabled) {
     throw new Error('Cloudinary not configured')
   }
@@ -45,13 +56,13 @@ export async function uploadImageBufferToCloudinary({ buffer, filename }) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: cloudinaryProductsFolder,
+        folder,
         resource_type: 'image',
         use_filename: true,
         unique_filename: true,
         overwrite: false,
         filename_override: filename,
-        tags: [cloudinaryTag, `${cloudinaryTag}:products`, `env:${cloudinaryEnvironmentTag}`],
+        tags: [cloudinaryTag, `${cloudinaryTag}:${tagSuffix}`, `env:${cloudinaryEnvironmentTag}`],
       },
       (err, result) => {
         if (err) return reject(err)

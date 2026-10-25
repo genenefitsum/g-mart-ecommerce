@@ -10,6 +10,12 @@ import Product from '../models/Product.js'
 import Order from '../models/Order.js'
 import SiteSettings from '../models/SiteSettings.js'
 import { getUploadsRoot } from '../lib/uploads.js'
+import { writeLimiter, uploadLimiter } from '../lib/rateLimiters.js'
+import {
+  cloudinaryFolders,
+  isCloudinaryEnabled,
+  uploadImageBufferToCloudinary,
+} from '../lib/cloudinary.js'
 
 export const ordersRouter = Router()
 
@@ -34,22 +40,24 @@ const allowedProofMimeTypes = new Set([
 
 const allowedProofExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp'])
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, paymentProofDir),
-  filename: (_req, file, cb) => {
-    const safeBase = String(file.originalname || 'proof')
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-zA-Z0-9._-]/g, '')
-      .slice(0, 80)
+const storage = isCloudinaryEnabled
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (_req, _file, cb) => cb(null, paymentProofDir),
+      filename: (_req, file, cb) => {
+        const safeBase = String(file.originalname || 'proof')
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-zA-Z0-9._-]/g, '')
+          .slice(0, 80)
 
-    const ext = path.extname(safeBase) || ''
-    const base = path.basename(safeBase, ext) || 'proof'
-    const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+        const ext = path.extname(safeBase) || ''
+        const base = path.basename(safeBase, ext) || 'proof'
+        const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
-    cb(null, `${base}-${stamp}${ext}`)
-  },
-})
+        cb(null, `${base}-${stamp}${ext}`)
+      },
+    })
 
 const upload = multer({
   storage,
@@ -133,7 +141,7 @@ ordersRouter.get('/payment-recipient', requireAuth, async (req, res, next) => {
 
 // POST /api/v1/orders
 // body: { items: [{ productId, quantity }], shipping?: {...}, payment: { method, transactionRef? } }
-ordersRouter.post('/', requireAuth, async (req, res, next) => {
+ordersRouter.post('/', writeLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -286,6 +294,7 @@ ordersRouter.get('/:orderId', requireAuth, async (req, res, next) => {
 // file field: proof
 ordersRouter.post(
   '/:orderId/payment-proof',
+  uploadLimiter,
   requireAuth,
   upload.single('proof'),
   async (req, res, next) => {
@@ -306,7 +315,14 @@ ordersRouter.post(
         return res.status(400).json({ ok: false, error: 'Proof image is required' })
       }
 
-      const proofUrl = `/uploads/order-payments/${req.file.filename}`
+      const proofUrl = isCloudinaryEnabled
+        ? await uploadImageBufferToCloudinary({
+            buffer: req.file.buffer,
+            filename: req.file.originalname,
+            folder: cloudinaryFolders.orderPayments,
+            tagSuffix: 'order-payments',
+          })
+        : `/uploads/order-payments/${req.file.filename}`
 
       order.payment = {
         ...(order.payment?.toObject?.() ?? order.payment ?? {}),
