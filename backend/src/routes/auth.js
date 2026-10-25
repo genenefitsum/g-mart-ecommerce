@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
 import { OAuth2Client } from 'google-auth-library'
 import rateLimit from 'express-rate-limit'
@@ -89,6 +90,38 @@ async function createOrUpdateLocalIdentity({ user, emailLower }) {
     },
     { upsert: true },
   )
+}
+
+// Delete a user and all of their related data. Runs inside a transaction when
+// the MongoDB deployment supports it (replica set / Atlas) so a partial failure
+// cannot orphan data. Standalone MongoDB (local dev, tests) does not support
+// multi-document transactions, so we fall back to sequential deletes there.
+async function deleteAllUserData(userId) {
+  const run = async (session) => {
+    const opts = session ? { session } : undefined
+    await RefreshToken.deleteMany({ userId }, opts)
+    await AuthIdentity.deleteMany({ userId }, opts)
+    await Wishlist.deleteOne({ userId }, opts)
+    await Order.deleteMany({ userId }, opts)
+    await Product.deleteMany({ sellerUserId: userId }, opts)
+    await User.deleteOne({ _id: userId }, opts)
+  }
+
+  let session
+  try {
+    session = await mongoose.startSession()
+    await session.withTransaction(() => run(session))
+  } catch (err) {
+    const message = String(err?.message ?? '')
+    const transactionsUnsupported =
+      /Transaction numbers are only allowed|replica set|Transactions are not supported|does not support sessions/i.test(
+        message,
+      )
+    if (!transactionsUnsupported) throw err
+    await run(null)
+  } finally {
+    if (session) await session.endSession()
+  }
 }
 
 function mongoGuard(req, res) {
@@ -729,15 +762,7 @@ authRouter.delete('/account', authLimiter, requireAuth, async (req, res, next) =
 
     const userId = user._id
 
-    await Promise.all([
-      RefreshToken.deleteMany({ userId }),
-      AuthIdentity.deleteMany({ userId }),
-      Wishlist.deleteOne({ userId }),
-      Order.deleteMany({ userId }),
-      Product.deleteMany({ sellerUserId: userId }),
-    ])
-
-    await User.deleteOne({ _id: userId })
+    await deleteAllUserData(userId)
 
     clearRefreshCookie(res)
     return res.json({ ok: true })
