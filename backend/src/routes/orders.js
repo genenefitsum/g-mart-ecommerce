@@ -141,7 +141,7 @@ ordersRouter.get('/payment-recipient', requireAuth, async (req, res, next) => {
 
 // POST /api/v1/orders
 // body: { items: [{ productId, quantity }], shipping?: {...}, payment: { method, transactionRef? } }
-ordersRouter.post('/', requireAuth, async (req, res, next) => {
+ordersRouter.post('/', writeLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -294,6 +294,7 @@ ordersRouter.get('/:orderId', requireAuth, async (req, res, next) => {
 // file field: proof
 ordersRouter.post(
   '/:orderId/payment-proof',
+  uploadLimiter,
   requireAuth,
   upload.single('proof'),
   async (req, res, next) => {

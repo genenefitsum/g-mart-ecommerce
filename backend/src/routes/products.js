@@ -290,7 +290,7 @@ productsRouter.get('/mine', requireAuth, async (req, res, next) => {
 
 // POST /api/v1/products/:productId/interest
 // body: { mode: 'notify_only' | 'with_contact', buyerContact?: { phone, email, note } }
-productsRouter.post('/:productId/interest', requireAuth, async (req, res, next) => {
+productsRouter.post('/:productId/interest', writeLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -436,7 +436,7 @@ productsRouter.get('/interests/mine', requireAuth, async (req, res, next) => {
 
 // POST /api/v1/products/interests/mark-read
 // body: { interestIds?: string[] }
-productsRouter.post('/interests/mark-read', requireAuth, async (req, res, next) => {
+productsRouter.post('/interests/mark-read', writeLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -500,7 +500,7 @@ productsRouter.get('/:productId([0-9a-fA-F]{24})', async (req, res, next) => {
 // POST /api/v1/products (multipart/form-data)
 // fields: name, price, category, description, contactPhone,
 // image(file) or images(files[])
-productsRouter.post('/', requireAuth, uploadProductImages, async (req, res, next) => {
+productsRouter.post('/', uploadLimiter, requireAuth, uploadProductImages, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -557,7 +557,7 @@ productsRouter.post('/', requireAuth, uploadProductImages, async (req, res, next
 
 // PATCH /api/v1/products/:productId (multipart/form-data)
 // editable fields: name, price, category, description, contactPhone, image(s)
-productsRouter.patch('/:productId', requireAuth, uploadProductImages, async (req, res, next) => {
+productsRouter.patch('/:productId', uploadLimiter, requireAuth, uploadProductImages, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -654,7 +654,7 @@ async function handleDeleteProduct(req, res, next) {
   }
 }
 
-productsRouter.delete('/:productId', requireAuth, handleDeleteProduct)
+productsRouter.delete('/:productId', writeLimiter, requireAuth, handleDeleteProduct)
 
 // Compatibility alias for environments that may not pass DELETE correctly.
-productsRouter.post('/:productId/delete', requireAuth, handleDeleteProduct)
+productsRouter.post('/:productId/delete', writeLimiter, requireAuth, handleDeleteProduct)

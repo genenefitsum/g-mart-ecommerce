@@ -8,6 +8,7 @@ import ProductInterest from '../models/ProductInterest.js'
 import ProductRating from '../models/ProductRating.js'
 import SellerRating from '../models/SellerRating.js'
 import User from '../models/User.js'
+import { writeLimiter } from '../lib/rateLimiters.js'
 
 export const ratingsRouter = Router()
 
@@ -174,7 +175,7 @@ ratingsRouter.get('/products/:productId/me', requireAuth, async (req, res, next)
 
 // PUT /api/v1/ratings/products/:productId
 // body: { stars: 1..5 }
-ratingsRouter.put('/products/:productId', requireAuth, async (req, res, next) => {
+ratingsRouter.put('/products/:productId', writeLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
@@ -321,7 +322,7 @@ ratingsRouter.get('/sellers/:sellerUserId/me', requireAuth, async (req, res, nex
 
 // PUT /api/v1/ratings/sellers/:sellerUserId
 // body: { stars: 1..5 }
-ratingsRouter.put('/sellers/:sellerUserId', requireAuth, async (req, res, next) => {
+ratingsRouter.put('/sellers/:sellerUserId', writeLimiter, requireAuth, async (req, res, next) => {
   try {
     if (!mongoGuard(req, res)) return
 
