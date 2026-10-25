@@ -10,6 +10,8 @@ import Product from '../models/Product.js'
 import ProductInterest from '../models/ProductInterest.js'
 import User from '../models/User.js'
 import { getUploadsRoot } from '../lib/uploads.js'
+import { escapeRegExp } from '../lib/strings.js'
+import { writeLimiter, uploadLimiter } from '../lib/rateLimiters.js'
 import {
   deleteCloudinaryImageByUrl,
   isCloudinaryEnabled,
@@ -213,19 +215,20 @@ productsRouter.get('/', async (req, res, next) => {
     if (!mongoGuard(req, res)) return
 
     const category = String(req.query?.category ?? '').trim()
-    const q = String(req.query?.q ?? '').trim()
+    const q = String(req.query?.q ?? '').trim().slice(0, 100)
     const limit = normalizeLimit(req.query?.limit, 200, 200)
 
     const filter = {}
     if (category) filter.category = category
 
     if (q) {
-      // Prefer text search when possible; fallback to regex.
-      // If MongoDB text index isn't present (e.g. autoIndex disabled in prod), regex still works.
+      // Escape user input so it is treated as a literal substring. This prevents
+      // regex-injection and ReDoS while keeping the same case-insensitive matching.
+      const safe = escapeRegExp(q)
       filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { category: { $regex: q, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { description: { $regex: safe, $options: 'i' } },
+        { category: { $regex: safe, $options: 'i' } },
       ]
     }
 
