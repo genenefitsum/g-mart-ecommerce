@@ -119,6 +119,20 @@ export function createServer() {
     app.use(express.json({ limit: '100kb' }))
     app.use(express.urlencoded({ extended: false, limit: '50kb' }))
 
+    // Lightweight request logging (skipped in tests to keep output clean).
+    if (process.env.NODE_ENV !== 'test') {
+        app.use((req, res, next) => {
+            const startedAt = Date.now()
+            res.on('finish', () => {
+                // eslint-disable-next-line no-console
+                console.log(
+                    `${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - startedAt}ms`,
+                )
+            })
+            next()
+        })
+    }
+
     app.use('/api/v1', apiV1)
 
     app.get('/healthz', (_req, res) => {
