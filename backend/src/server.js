@@ -36,7 +36,23 @@ export function createServer() {
     app.use(
         helmet({
             crossOriginResourcePolicy: { policy: 'cross-origin' },
-            contentSecurityPolicy: false,
+            contentSecurityPolicy: {
+                useDefaults: true,
+                directives: {
+                    defaultSrc: ["'self'"],
+                    baseUri: ["'self'"],
+                    scriptSrc: ["'self'", 'https://accounts.google.com', 'https://apis.google.com'],
+                    styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com'],
+                    imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+                    fontSrc: ["'self'", 'data:'],
+                    connectSrc: ["'self'", 'https://accounts.google.com', 'https://res.cloudinary.com'],
+                    frameSrc: ["'self'", 'https://accounts.google.com'],
+                    objectSrc: ["'none'"],
+                    frameAncestors: ["'self'"],
+                    // Only force https upgrades in production; keep http for local dev.
+                    upgradeInsecureRequests: isProd ? [] : null,
+                },
+            },
             hsts: isProd
                 ? {
                       maxAge: 15552000,
