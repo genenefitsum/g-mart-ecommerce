@@ -39,6 +39,27 @@ const uploadsRoot = getUploadsRoot()
 const productsUploadDir = path.join(uploadsRoot, 'products')
 fs.mkdirSync(productsUploadDir, { recursive: true })
 
+const allowedImageMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+])
+
+const allowedImageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'])
+
+function imageFileFilter(_req, file, cb) {
+  const ext = path.extname(String(file?.originalname ?? '').toLowerCase())
+  const mime = String(file?.mimetype ?? '').toLowerCase()
+
+  if (!allowedImageExtensions.has(ext) || !allowedImageMimeTypes.has(mime)) {
+    return cb(new Error('Invalid image file type. Only JPG, PNG, WEBP, GIF, and AVIF are allowed.'))
+  }
+
+  return cb(null, true)
+}
+
 const storage = isCloudinaryEnabled
   ? multer.memoryStorage()
   : multer.diskStorage({
@@ -61,6 +82,7 @@ const storage = isCloudinaryEnabled
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
 })
 
 const uploadProductImages = upload.fields([

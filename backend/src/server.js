@@ -144,7 +144,11 @@ export function createServer() {
             return res.status(400).json({ ok: false, error: 'File too large. Max size is 5MB.' })
         }
 
-        if (String(err?.message ?? '').startsWith('Invalid proof file type')) {
+        const errMessage = String(err?.message ?? '')
+        if (
+            errMessage.startsWith('Invalid proof file type') ||
+            errMessage.startsWith('Invalid image file type')
+        ) {
             return res.status(400).json({ ok: false, error: err.message })
         }
 
