@@ -1,11 +1,22 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { X, Heart, Trash2, ShoppingCart } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 import { cn, formatBirr } from "@/lib/utils";
 import { toErrorMessage } from "@/lib/errors";
 
+const fallbackImage = `data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+    <rect width="400" height="400" fill="#f3f4f6"/>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial, sans-serif" font-size="20">
+      No image
+    </text>
+  </svg>`
+)}`;
+
 export default function WishlistSideBar() {
+  const navigate = useNavigate();
   const { items, isWishlistOpen, setIsWishlistOpen, removeFromWishlist, totalItems, isLoading, error } = useWishlist();
   const { addToCart } = useCart();
 
@@ -31,10 +42,25 @@ export default function WishlistSideBar() {
     if (!isWishlistOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setIsWishlistOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+
     return () => {
       document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isWishlistOpen]);
+  }, [isWishlistOpen, setIsWishlistOpen]);
+
+  const handleOpenProduct = (id) => {
+    if (!id) return;
+    setIsWishlistOpen(false);
+    navigate(`/product/${id}`);
+  };
 
   const startShopping = () => {
     setIsWishlistOpen(false);
@@ -68,8 +94,13 @@ export default function WishlistSideBar() {
               <h2 className="text-lg font-semibold">Wishlist</h2>
               <span className="bg-blue-600 text-white text-sm px-2 rounded-full">{totalItems}</span>
             </div>
-            <button onClick={() => setIsWishlistOpen(false)}>
-              <X />
+            <button
+              type="button"
+              onClick={() => setIsWishlistOpen(false)}
+              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition"
+              aria-label="Close wishlist"
+            >
+              <X size={20} />
             </button>
           </div>
 
@@ -102,12 +133,32 @@ export default function WishlistSideBar() {
             ) : (
               <div className="space-y-4">
                 {items.map((item) => (
-                  <div key={item.id} className="flex gap-4">
-                    <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded" />
+                  <div key={item.id} className="flex gap-4 items-start">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenProduct(item.id)}
+                      className="shrink-0 rounded-lg overflow-hidden border border-gray-100 hover:opacity-90 transition"
+                      aria-label={`View ${item.name}`}
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-20 h-20 object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = fallbackImage;
+                        }}
+                      />
+                    </button>
 
-                    <div className="flex-1">
-                      <h4 className="font-medium">{item.name}</h4>
-                      <p className="text-sm text-gray-500">{formatBirr(item.price ?? 0)}</p>
+                    <div className="flex-1 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenProduct(item.id)}
+                        className="text-left font-medium text-gray-900 hover:text-blue-600 transition line-clamp-1 text-sm sm:text-base"
+                      >
+                        {item.name}
+                      </button>
+                      <p className="text-sm text-gray-500 mt-0.5">{formatBirr(item.price ?? 0)}</p>
                       {item.category ? (
                         <p className="mt-1 text-xs text-gray-400 font-montserrat uppercase">{item.category}</p>
                       ) : null}
@@ -116,15 +167,20 @@ export default function WishlistSideBar() {
                         type="button"
                         onClick={() => moveToCart(item)}
                         disabled={!item?.canAddToCart}
-                        className="mt-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-montserrat font-semibold text-gray-900 transition hover:bg-gray-50"
+                        className="mt-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-montserrat font-semibold text-gray-900 transition hover:bg-gray-50 disabled:opacity-50"
                       >
-                        <ShoppingCart size={16} />
+                        <ShoppingCart size={14} />
                         {item?.canAddToCart ? 'Move to cart' : 'Wishlist only'}
                       </button>
                     </div>
 
                     <div className="flex flex-col justify-start items-end">
-                      <button onClick={() => removeFromWishlist(item.id)} aria-label="Remove">
+                      <button
+                        type="button"
+                        onClick={() => removeFromWishlist(item.id)}
+                        className="text-gray-400 hover:text-red-600 p-1 rounded transition"
+                        aria-label="Remove item from wishlist"
+                      >
                         <Trash2 size={16} />
                       </button>
                     </div>

@@ -12,8 +12,23 @@ const CATEGORY_ID_TO_NAME = {
   mens: "Men's",
   womens: "Women's",
   accessories: "Accessories",
+  jewelry: "Jewelry",
+  watches: "Watches",
+  eyewear: "Eyewear",
   sale: "Sale",
 };
+
+function resolveCategoryName(slug) {
+  if (!slug) return "";
+  const key = String(slug).toLowerCase().trim();
+  if (CATEGORY_ID_TO_NAME[key]) return CATEGORY_ID_TO_NAME[key];
+  try {
+    const decoded = decodeURIComponent(slug).trim();
+    return decoded.charAt(0).toUpperCase() + decoded.slice(1);
+  } catch {
+    return slug;
+  }
+}
 
 const normalizeProduct = (product) => {
   const id = String(product?._id ?? product?.id ?? "");
@@ -55,7 +70,7 @@ export default function CategoryProductsPage({ searchQuery = "" }) {
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
-  const categoryName = CATEGORY_ID_TO_NAME[categoryId] ?? "";
+  const categoryName = useMemo(() => resolveCategoryName(categoryId), [categoryId]);
 
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
