@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Search, User, Heart, ShoppingBag, Menu, X, MessageCircle, Plus } from "lucide-react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AddProductDialog from "@/components/store/AddProductDialog";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -10,19 +10,13 @@ import { apiListMyProductInterests, apiMarkMyProductInterestsRead } from "@/lib/
 import { toErrorMessage } from "@/lib/errors";
 
 const CATEGORIES_FOR_SEARCH = [
-  { id: "categories", name: "Categories", description: "Browse all categories" },
-  { id: "mens", name: "Men's", description: "Shop the collection" },
-  { id: "womens", name: "Women's", description: "Shop the collection" },
-  { id: "accessories", name: "Accessories", description: "Shop the collection" },
-  { id: "sale", name: "Sale", description: "Up to 50% off" },
-];
-
-const PRODUCTS_FOR_SEARCH = [
-  { id: "products", name: "Featured Products", category: "Products" },
-  { id: "p1", name: "Classic White Sneakers", category: "Footwear" },
-  { id: "p2", name: "Minimal Leather Backpack", category: "Accessories" },
-  { id: "p3", name: "Denim Jacket", category: "Men's" },
-  { id: "p4", name: "Everyday Tote Bag", category: "Women's" },
+  { id: "mens", name: "Men's", description: "Shop men's apparel & shoes" },
+  { id: "womens", name: "Women's", description: "Shop women's collection" },
+  { id: "accessories", name: "Accessories", description: "Bags, belts & essentials" },
+  { id: "jewelry", name: "Jewelry", description: "Chains, rings & bracelets" },
+  { id: "watches", name: "Watches", description: "Classic & modern timepieces" },
+  { id: "eyewear", name: "Eyewear", description: "Sunglasses & stylish frames" },
+  { id: "sale", name: "Sale", description: "Special discounts and deals" },
 ];
 
 const navLinks = [
@@ -182,14 +176,18 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
   };
 
   const submitSearch = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (typeof onSearch === "function") onSearch(searchValue);
 
-    // On desktop, keep results in the header (no auto-scroll).
-    // On mobile search overlay, keep the old behavior of jumping to products.
-    if (!isMobileSearchOpen) return;
-    const productsSection = document.getElementById("products");
-    if (productsSection) productsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (location.pathname !== "/") {
+      navigate(`/#products`);
+    } else {
+      const productsSection = document.getElementById("products");
+      if (productsSection) productsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    closeDesktopSearch();
+    closeMobileSearch();
   };
 
   useEffect(() => {
@@ -231,14 +229,6 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
   }, [isMessagesOpen, loadSellerInterests]);
 
   const searchText = searchValue.trim().toLowerCase();
-
-  const productResults = useMemo(() => {
-    if (!searchText) return [];
-    return PRODUCTS_FOR_SEARCH.filter((p) => {
-      const haystack = `${p.name} ${p.category}`.toLowerCase();
-      return haystack.includes(searchText);
-    }).slice(0, 6);
-  }, [searchText]);
 
   const categoryResults = useMemo(() => {
     if (!searchText) return [];
@@ -292,11 +282,6 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
   const setQuery = (next) => {
     setSearchValue(next);
     if (typeof onSearch === "function") onSearch(next);
-  };
-
-  const goToSection = (id) => {
-    const section = document.getElementById(id);
-    if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -531,65 +516,49 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
 
                       {/* Desktop results dropdown (keeps results at the top) */}
                       {searchText ? (
-                        <div className="absolute right-0 top-full mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white/90 shadow-xl backdrop-blur-md">
+                        <div className="absolute right-0 top-full mt-2 w-72 lg:w-80 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
                           <div className="max-h-[60vh] overflow-auto p-2">
-                            {productResults.length === 0 && categoryResults.length === 0 ? (
-                              <div className="px-3 py-3 text-sm text-gray-500 font-montserrat">
-                                No results for “{searchValue}”.
-                              </div>
-                            ) : (
-                              <div className="space-y-3">
-                                {productResults.length > 0 && (
+                            <div className="space-y-2">
+                              <div>
+                                <button
+                                  type="button"
+                                  className="w-full text-left rounded-xl px-3 py-2.5 bg-blue-50 hover:bg-blue-100/80 active:bg-blue-100 transition flex items-center justify-between"
+                                  onClick={submitSearch}
+                                >
                                   <div>
-                                    <div className="px-3 py-1 text-[11px] uppercase tracking-wide text-gray-400 font-semibold">
-                                      Products
+                                    <div className="font-semibold text-blue-700 text-sm">
+                                      Search for “{searchValue}”
                                     </div>
-                                    <div className="mt-1 space-y-1">
-                                      {productResults.map((p) => (
-                                        <button
-                                          key={p.id}
-                                          type="button"
-                                          className="w-full text-left rounded-xl px-3 py-2 hover:bg-black/[0.04] active:bg-black/[0.06] transition"
-                                          onClick={() => {
-                                            setQuery(p.name);
-                                            closeDesktopSearch();
-                                            goToSection("products");
-                                          }}
-                                        >
-                                          <div className="font-semibold text-gray-900">{p.name}</div>
-                                          <div className="text-sm text-gray-500">{p.category}</div>
-                                        </button>
-                                      ))}
-                                    </div>
+                                    <div className="text-xs text-blue-600/80">View all matching products</div>
                                   </div>
-                                )}
+                                  <span className="text-blue-700 font-bold text-sm">→</span>
+                                </button>
+                              </div>
 
-                                {categoryResults.length > 0 && (
-                                  <div>
-                                    <div className="px-3 py-1 text-[11px] uppercase tracking-wide text-gray-400 font-semibold">
-                                      Categories
-                                    </div>
-                                    <div className="mt-1 space-y-1">
-                                      {categoryResults.map((c) => (
-                                        <button
-                                          key={c.id}
-                                          type="button"
-                                          className="w-full text-left rounded-xl px-3 py-2 hover:bg-black/[0.04] active:bg-black/[0.06] transition"
-                                          onClick={() => {
-                                            setQuery(c.name);
-                                            closeDesktopSearch();
-                                            goToSection("categories");
-                                          }}
-                                        >
-                                          <div className="font-semibold text-gray-900">{c.name}</div>
-                                          <div className="text-sm text-gray-500">{c.description}</div>
-                                        </button>
-                                      ))}
-                                    </div>
+                              {categoryResults.length > 0 && (
+                                <div className="pt-1">
+                                  <div className="px-3 py-1 text-[11px] uppercase tracking-wide text-gray-400 font-semibold">
+                                    Categories
                                   </div>
-                                )}
-                              </div>
-                            )}
+                                  <div className="mt-1 space-y-1">
+                                    {categoryResults.map((c) => (
+                                      <button
+                                        key={c.id}
+                                        type="button"
+                                        className="w-full text-left rounded-xl px-3 py-2 hover:bg-black/[0.04] active:bg-black/[0.06] transition"
+                                        onClick={() => {
+                                          closeDesktopSearch();
+                                          navigate(`/category/${c.id}`);
+                                        }}
+                                      >
+                                        <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
+                                        <div className="text-xs text-gray-500">{c.description}</div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ) : null}
@@ -765,33 +734,23 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
                 <div className="mt-4 max-h-[55vh] overflow-auto">
                   {!searchText ? (
                     <div className="text-sm text-gray-500 font-montserrat">Start typing to see results.</div>
-                  ) : productResults.length === 0 && categoryResults.length === 0 ? (
-                    <div className="text-sm text-gray-500 font-montserrat">No results for “{searchValue}”.</div>
                   ) : (
-                    <div className="space-y-4">
-                      {productResults.length > 0 && (
-                        <div>
-                          <div className="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-2">
-                            Products
+                    <div className="space-y-3">
+                      <div>
+                        <button
+                          type="button"
+                          className="w-full text-left rounded-xl px-3.5 py-3 bg-blue-50 hover:bg-blue-100 active:bg-blue-100 transition flex items-center justify-between"
+                          onClick={submitSearch}
+                        >
+                          <div>
+                            <div className="font-semibold text-blue-700 text-sm">
+                              Search for “{searchValue}”
+                            </div>
+                            <div className="text-xs text-blue-600/80">View all matching products</div>
                           </div>
-                          <div className="space-y-1">
-                            {productResults.map((p) => (
-                              <button
-                                key={p.id}
-                                type="button"
-                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50"
-                                onClick={() => {
-                                  closeMobileSearch();
-                                  goToSection("products");
-                                }}
-                              >
-                                <div className="font-semibold text-gray-900">{p.name}</div>
-                                <div className="text-sm text-gray-500">{p.category}</div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                          <span className="text-blue-700 font-bold text-sm">→</span>
+                        </button>
+                      </div>
 
                       {categoryResults.length > 0 && (
                         <div>
@@ -803,14 +762,14 @@ const Header = ({ searchQuery = "", onSearch, onAuthOpen, onProductCreated }) =>
                               <button
                                 key={c.id}
                                 type="button"
-                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50"
+                                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition"
                                 onClick={() => {
                                   closeMobileSearch();
-                                  goToSection("categories");
+                                  navigate(`/category/${c.id}`);
                                 }}
                               >
-                                <div className="font-semibold text-gray-900">{c.name}</div>
-                                <div className="text-sm text-gray-500">{c.description}</div>
+                                <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
+                                <div className="text-xs text-gray-500">{c.description}</div>
                               </button>
                             ))}
                           </div>

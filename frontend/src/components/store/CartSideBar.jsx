@@ -1,10 +1,21 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { cn, formatBirr } from "@/lib/utils";
 
+const fallbackImage = `data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+    <rect width="400" height="400" fill="#f3f4f6"/>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial, sans-serif" font-size="20">
+      No image
+    </text>
+  </svg>`
+)}`;
+
 export default function CartSideBar({ onCheckout }) {
-const {
+  const navigate = useNavigate();
+  const {
     items,
     isCartOpen,
     setIsCartOpen,
@@ -12,24 +23,39 @@ const {
     removeFromCart,
     totalPrice,
     totalItems,
-} = useCart();
+  } = useCart();
 
-useEffect(() => {
+  useEffect(() => {
     if (!isCartOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => {
-        document.body.style.overflow = previousOverflow;
-    };
-}, [isCartOpen]);
 
-const startShopping = () => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setIsCartOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isCartOpen, setIsCartOpen]);
+
+  const handleOpenProduct = (id) => {
+    if (!id) return;
+    setIsCartOpen(false);
+    navigate(`/product/${id}`);
+  };
+
+  const startShopping = () => {
     setIsCartOpen(false);
     const section =
-        document.getElementById("products") ||
-        document.getElementById("categories");
+      document.getElementById("products") ||
+      document.getElementById("categories");
     section?.scrollIntoView({ behavior: "smooth", block: "start" });
-};
+  };
 
     return (
         <>
@@ -61,8 +87,13 @@ const startShopping = () => {
                         {totalItems}
                     </span>
             </div>
-                <button onClick={() => setIsCartOpen(false)}>
-                    <X />
+                <button
+                  type="button"
+                  onClick={() => setIsCartOpen(false)}
+                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition"
+                  aria-label="Close cart"
+                >
+                  <X size={20} />
                 </button>
             </div>
 
@@ -89,47 +120,72 @@ const startShopping = () => {
             ) : (
                 <div className="space-y-4">
                 {items.map((item) => (
-                    <div key={item.id} className="flex gap-4">
-                    <img
+                    <div key={item.id} className="flex gap-4 items-start">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenProduct(item.id)}
+                      className="shrink-0 rounded-lg overflow-hidden border border-gray-100 hover:opacity-90 transition"
+                      aria-label={`View ${item.name}`}
+                    >
+                      <img
                         src={item.image}
                         alt={item.name}
-                        className="w-20 h-20 object-cover rounded"
-                    />
+                        className="w-20 h-20 object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = fallbackImage;
+                        }}
+                      />
+                    </button>
 
-                    <div className="flex-1">
-                        <h4 className="font-medium">{item.name}</h4>
-                        <p className="text-sm text-gray-500">
+                    <div className="flex-1 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenProduct(item.id)}
+                          className="text-left font-medium text-gray-900 hover:text-blue-600 transition line-clamp-1 text-sm sm:text-base"
+                        >
+                          {item.name}
+                        </button>
+                        <p className="text-sm text-gray-500 mt-0.5">
                             {formatBirr(item.price)}
                         </p>
 
                     <div className="flex items-center gap-2 mt-2">
                         <button
+                            type="button"
                             onClick={() =>
                             updateQuantity(item.id, item.quantity - 1)
                         }
-                        className="border rounded w-7 h-7 flex items-center justify-center"
+                        className="border rounded-md w-7 h-7 flex items-center justify-center hover:bg-gray-100 transition"
+                        aria-label="Decrease quantity"
                         >
                         <Minus size={14} />
                         </button>
 
-                        <span>{item.quantity}</span>
+                        <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
 
                         <button
+                            type="button"
                             onClick={() =>
                             updateQuantity(item.id, item.quantity + 1)
                             }
-                            className="border rounded w-7 h-7 flex items-center justify-center"
+                            className="border rounded-md w-7 h-7 flex items-center justify-center hover:bg-gray-100 transition"
+                            aria-label="Increase quantity"
                         >
                         <Plus size={14} />
                         </button>
                     </div>
                     </div>
 
-                    <div className="flex flex-col justify-between items-end">
-                    <button onClick={() => removeFromCart(item.id)}>
+                    <div className="flex flex-col justify-between items-end h-20">
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(item.id)}
+                      className="text-gray-400 hover:text-red-600 p-1 rounded transition"
+                      aria-label="Remove item from cart"
+                    >
                         <Trash2 size={16} />
                     </button>
-                    <span className="font-semibold">
+                    <span className="font-semibold text-sm">
                         {formatBirr(item.price * item.quantity)}
                     </span>
                     </div>

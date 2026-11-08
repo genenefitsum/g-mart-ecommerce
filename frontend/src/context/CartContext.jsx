@@ -1,10 +1,42 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 const CartContext = createContext(null);
+const CART_STORAGE_KEY = "gmart_cart_v1";
+
+function readStoredCart() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((it) => it && typeof it === "object" && it.id)
+      .map((it) => ({
+        id: String(it.id),
+        name: it.name ?? "",
+        category: it.category ?? "",
+        price: Number(it.price ?? 0),
+        image: it.image ?? "",
+        quantity: Math.max(1, Math.floor(Number(it.quantity) || 1)),
+        canAddToCart: typeof it.canAddToCart === "boolean" ? it.canAddToCart : true,
+      }));
+  } catch {
+    return [];
+  }
+}
 
 export const CartProvider = ({ children }) => {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(readStoredCart);
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [items]);
 
   const addToCart = (product) => {
     if (product?.canAddToCart === false) {

@@ -12,8 +12,5 @@
     "build": "npm --workspace frontend run build",
     "preview": "npm --workspace frontend run preview",
     "lint": "npm --workspace frontend run lint"
-  },
-  "dependencies": {
-    "cloudinary": "^2.9.0"
   }
 }

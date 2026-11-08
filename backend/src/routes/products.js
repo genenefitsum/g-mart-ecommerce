@@ -241,7 +241,9 @@ productsRouter.get('/', async (req, res, next) => {
     const limit = normalizeLimit(req.query?.limit, 200, 200)
 
     const filter = {}
-    if (category) filter.category = category
+    if (category) {
+      filter.category = { $regex: `^${escapeRegExp(category)}$`, $options: 'i' }
+    }
 
     if (q) {
       // Escape user input so it is treated as a literal substring. This prevents

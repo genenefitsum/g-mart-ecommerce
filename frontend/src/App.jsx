@@ -1,5 +1,4 @@
-// import './App.css';
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/layouts/Header.jsx'
 import HeroSection from './components/store/Hero.jsx'
@@ -11,19 +10,29 @@ import SellProduct from './components/store/SellProduct.jsx'
 import About from './components/store/About.jsx'
 import Footer from './components/layouts/Footer.jsx'
 import AuthScreen from './components/store/AuthScreen.jsx'
-import CategoryProductsPage from './components/store/CategoryProductsPage.jsx'
-import Checkout from './pages/Checkout.jsx'
-import ProductDetails from './pages/ProductDetails.jsx'
-import Account from './pages/Account.jsx'
-import Admin from './pages/Admin.jsx'
-import Terms from './pages/Terms.jsx'
-import Privacy from './pages/Privacy.jsx'
-import RefundPolicy from './pages/RefundPolicy.jsx'
-import ShippingPolicy from './pages/ShippingPolicy.jsx'
-import SellerTerms from './pages/SellerTerms.jsx'
 import CookieBanner from './components/legal/CookieBanner.jsx'
 
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+// Lazy-loaded routes to minimize initial bundle size
+const CategoryProductsPage = lazy(() => import('./components/store/CategoryProductsPage.jsx'))
+const Checkout = lazy(() => import('./pages/Checkout.jsx'))
+const ProductDetails = lazy(() => import('./pages/ProductDetails.jsx'))
+const Account = lazy(() => import('./pages/Account.jsx'))
+const Admin = lazy(() => import('./pages/Admin.jsx'))
+const Terms = lazy(() => import('./pages/Terms.jsx'))
+const Privacy = lazy(() => import('./pages/Privacy.jsx'))
+const RefundPolicy = lazy(() => import('./pages/RefundPolicy.jsx'))
+const ShippingPolicy = lazy(() => import('./pages/ShippingPolicy.jsx'))
+const SellerTerms = lazy(() => import('./pages/SellerTerms.jsx'))
+
+function RouteFallback() {
+  return (
+    <div className="min-h-[50vh] flex items-center justify-center">
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+    </div>
+  )
+}
+
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
 import { onAuthRequired, requestSignIn } from '@/lib/authGate'
 
@@ -44,6 +53,7 @@ function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const showGlobalHeader = !location.pathname.startsWith('/admin')
+  const showGlobalFooter = !location.pathname.startsWith('/admin')
   const openAuth = useCallback((redirectTo = '') => {
     requestSignIn({ redirectTo })
   }, [])
@@ -124,53 +134,56 @@ function App() {
           />
         ) : null}
 
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <>
-                <HeroSection />
-                <CategoriesSection searchQuery={searchQuery} />
-                <Products
-                  searchQuery={searchQuery}
-                  refreshKey={productsRefreshKey}
-                />
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <>
+                  <HeroSection />
+                  <CategoriesSection searchQuery={searchQuery} />
+                  <Products
+                    searchQuery={searchQuery}
+                    refreshKey={productsRefreshKey}
+                  />
 
-                <SellProduct
-                  onCreated={() => setProductsRefreshKey((k) => k + 1)}
-                  onRequireAuth={openAuth}
-                />
-              </>
-            }
-          />
-          <Route
-            path="/category/:categoryId"
-            element={<CategoryProductsPage searchQuery={searchQuery} />}
-          />
-          <Route path="/product/:productId" element={<ProductDetails />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/returns" element={<RefundPolicy />} />
-          <Route path="/refund-policy" element={<RefundPolicy />} />
-          <Route path="/shipping" element={<ShippingPolicy />} />
-          <Route path="/shipping-policy" element={<ShippingPolicy />} />
-          <Route path="/seller-terms" element={<SellerTerms />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route
-            path="/account"
-            element={<Account onRequireAuth={openAuth} />}
-          />
-          <Route
-            path="/admin/*"
-            element={
-              isAdminUser(user) ? (
-                <Admin />
-              ) : (
-                <Navigate to="/account" replace />
-              )
-            }
-          />
-        </Routes>
+                  <SellProduct
+                    onCreated={() => setProductsRefreshKey((k) => k + 1)}
+                    onRequireAuth={openAuth}
+                  />
+                  <About />
+                </>
+              }
+            />
+            <Route
+              path="/category/:categoryId"
+              element={<CategoryProductsPage searchQuery={searchQuery} />}
+            />
+            <Route path="/product/:productId" element={<ProductDetails />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/returns" element={<RefundPolicy />} />
+            <Route path="/refund-policy" element={<RefundPolicy />} />
+            <Route path="/shipping" element={<ShippingPolicy />} />
+            <Route path="/shipping-policy" element={<ShippingPolicy />} />
+            <Route path="/seller-terms" element={<SellerTerms />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route
+              path="/account"
+              element={<Account onRequireAuth={openAuth} />}
+            />
+            <Route
+              path="/admin/*"
+              element={
+                isAdminUser(user) ? (
+                  <Admin />
+                ) : (
+                  <Navigate to="/account" replace />
+                )
+              }
+            />
+          </Routes>
+        </Suspense>
 
         <WishlistSideBar />
         <CartSideBar onCheckout={() => requireAuthThen('/checkout')} />
@@ -187,6 +200,8 @@ function App() {
           className="w-[min(92vw,520px)] max-w-none rounded-3xl border border-gray-200 bg-white p-6 sm:p-7"
           overlayClassName="bg-black/30 backdrop-blur-sm"
         >
+          <DialogTitle className="sr-only">Sign In to G-mart</DialogTitle>
+          <DialogDescription className="sr-only">Access your account or sign up</DialogDescription>
           <AuthScreen
             onSuccess={() => {
               setShowAuth(false)
@@ -200,8 +215,7 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      <About />
-      <Footer />
+      {showGlobalFooter ? <Footer /> : null}
       <CookieBanner />
 
     </>
