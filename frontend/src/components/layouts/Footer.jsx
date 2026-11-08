@@ -1,8 +1,27 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FaInstagram, FaWhatsapp, FaXTwitter } from "react-icons/fa6";
+import { CheckCircle2 } from "lucide-react";
 import { openCookiePreferences } from '@/lib/cookieConsent'
 
 const Footer = () => {
+    const [name, setName] = useState('')
+    const [email, setEmail] = useState('')
+    const [message, setMessage] = useState('')
+    const [isSubmitted, setIsSubmitted] = useState(false)
+
+    const handleSubmit = (e) => {
+        e.preventDefault()
+        if (!name.trim() || !email.trim() || !message.trim()) return
+        setIsSubmitted(true)
+    }
+
+    const handleReset = () => {
+        setName('')
+        setEmail('')
+        setMessage('')
+        setIsSubmitted(false)
+    }
     return (
         <>
             <section id="contact" className="bg-black text-white">
@@ -16,54 +35,80 @@ const Footer = () => {
                                     Have a question or feedback? Send us a message we’d love to hear from you.
                                 </p>
 
-                                <form
-                                    className="mt-6 space-y-3 max-w-sm mx-0 sm:mx-auto lg:mx-0"
-                                    onSubmit={(e) => {
-                                        e.preventDefault();
-                                    }}
-                                >
-                                    <div>
-                                        <label className="sr-only" htmlFor="footer-name">Name</label>
-                                        <input
-                                            id="footer-name"
-                                            name="name"
-                                            type="text"
-                                            placeholder="Name"
-                                            autoComplete="name"
-                                            className="w-full h-10 rounded-lg border border-white/15 bg-white/5 px-3.5 text-[13px] font-montserrat text-white placeholder:text-white/50 outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10"
-                                        />
+                                {isSubmitted ? (
+                                    <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 max-w-sm">
+                                        <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm">
+                                            <CheckCircle2 className="h-5 w-5 shrink-0" />
+                                            <span>Message received!</span>
+                                        </div>
+                                        <p className="mt-2 text-xs text-white/70">
+                                            Thank you for reaching out, {name}. We will get back to you at {email} as soon as possible.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={handleReset}
+                                            className="mt-3 text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                                        >
+                                            Send another message
+                                        </button>
                                     </div>
-
-                                    <div>
-                                        <label className="sr-only" htmlFor="footer-email">Email</label>
-                                        <input
-                                            id="footer-email"
-                                            name="email"
-                                            type="email"
-                                            placeholder="Email"
-                                            autoComplete="email"
-                                            className="w-full h-10 rounded-lg border border-white/15 bg-white/5 px-3.5 text-[13px] font-montserrat text-white placeholder:text-white/50 outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="sr-only" htmlFor="footer-message">Message</label>
-                                        <textarea
-                                            id="footer-message"
-                                            name="message"
-                                            placeholder="Message"
-                                            rows={1}
-                                            className="w-full h-10 resize-none rounded-lg border border-white/15 bg-white/5 px-3.5 py-2 text-[13px] font-montserrat text-white placeholder:text-white/50 outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10"
-                                        />
-                                    </div>
-
-                                    <button
-                                        type="submit"
-                                        className="inline-flex rounded-lg bg-blue-600 px-4 py-2 text-[13px] font-montserrat font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black"
+                                ) : (
+                                    <form
+                                        className="mt-6 space-y-3 max-w-sm mx-0 sm:mx-auto lg:mx-0"
+                                        onSubmit={handleSubmit}
                                     >
-                                        Send message
-                                    </button>
-                                </form>
+                                        <div>
+                                            <label className="sr-only" htmlFor="footer-name">Name</label>
+                                            <input
+                                                id="footer-name"
+                                                name="name"
+                                                type="text"
+                                                placeholder="Name"
+                                                autoComplete="name"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                required
+                                                className="w-full h-10 rounded-lg border border-white/15 bg-white/5 px-3.5 text-[13px] font-montserrat text-white placeholder:text-white/50 outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="sr-only" htmlFor="footer-email">Email</label>
+                                            <input
+                                                id="footer-email"
+                                                name="email"
+                                                type="email"
+                                                placeholder="Email"
+                                                autoComplete="email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                required
+                                                className="w-full h-10 rounded-lg border border-white/15 bg-white/5 px-3.5 text-[13px] font-montserrat text-white placeholder:text-white/50 outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="sr-only" htmlFor="footer-message">Message</label>
+                                            <textarea
+                                                id="footer-message"
+                                                name="message"
+                                                placeholder="Message"
+                                                rows={2}
+                                                value={message}
+                                                onChange={(e) => setMessage(e.target.value)}
+                                                required
+                                                className="w-full min-h-[44px] resize-none rounded-lg border border-white/15 bg-white/5 px-3.5 py-2 text-[13px] font-montserrat text-white placeholder:text-white/50 outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10"
+                                            />
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            className="inline-flex rounded-lg bg-blue-600 px-4 py-2 text-[13px] font-montserrat font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black"
+                                        >
+                                            Send message
+                                        </button>
+                                    </form>
+                                )}
 
                             </div>
 
