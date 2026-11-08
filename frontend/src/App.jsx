@@ -141,6 +141,7 @@ function App() {
                   onCreated={() => setProductsRefreshKey((k) => k + 1)}
                   onRequireAuth={openAuth}
                 />
+                <About />
               </>
             }
           />
@@ -201,8 +202,7 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      <About />
-      <Footer />
+      {showGlobalFooter ? <Footer /> : null}
       <CookieBanner />
 
     </>
