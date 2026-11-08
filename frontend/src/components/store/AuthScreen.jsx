@@ -102,7 +102,7 @@ export default function AuthScreen({ onSuccess }) {
 
           const result = await googleLogin({
             credential,
-            termsAndPrivacyAccepted: mode === 'signup' ? consentAccepted : false,
+            termsAndPrivacyAccepted: true,
           })
           if (result?.ok && typeof onSuccess === 'function') {
             onSuccess()
