@@ -168,19 +168,19 @@ function AdminShell() {
             </div>
           </div>
 
-          <div className="border-t border-slate-200/70 px-4 py-3 sm:px-6 lg:hidden">
-            <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="border-t border-slate-200/70 px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {ADMIN_NAV_ITEMS.map((item) => {
                 const Icon = item.icon
                 return (
                   <NavLink
-                    key={item.to || 'overview-mobile'}
+                    key={item.to || 'overview'}
                     to={item.to}
                     end={item.end}
                     className={({ isActive }) => [
                       'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap transition',
                       isActive
-                        ? 'border-slate-950 bg-slate-950 text-white'
+                        ? 'border-slate-950 bg-slate-950 text-white shadow-sm'
                         : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900',
                     ].join(' ')}
                   >
