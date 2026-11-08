@@ -44,6 +44,7 @@ function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const showGlobalHeader = !location.pathname.startsWith('/admin')
+  const showGlobalFooter = !location.pathname.startsWith('/admin')
   const openAuth = useCallback((redirectTo = '') => {
     requestSignIn({ redirectTo })
   }, [])
